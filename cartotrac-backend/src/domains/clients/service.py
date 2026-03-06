@@ -1,50 +1,70 @@
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.domains.clients.models import Client
 from src.domains.clients.repository import ClientRepository
-from src.domains.clients.schemas import ClientCreate, ClientUpdate
+from src.domains.clients.schemas import (
+    ClientCreate,
+    ClientListResponse,
+    ClientRead,
+    ClientUpdate,
+    PaginationMeta,
+)
 
 
 class ClientService:
-    def __init__(self, db: Session) -> None:
-        self.repository = ClientRepository(db)
+    @staticmethod
+    def list_clients(
+        db: Session,
+        *,
+        limit: int,
+        offset: int,
+        search: str | None = None,
+    ) -> ClientListResponse:
+        items = ClientRepository.list(
+            db,
+            limit=limit,
+            offset=offset,
+            search=search,
+        )
+        total = ClientRepository.count(db, search=search)
 
-    def create_client(self, payload: ClientCreate) -> Client:
-        existing = self.repository.get_by_email(payload.email)
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A client with this email already exists.",
-            )
+        return ClientListResponse(
+            meta=PaginationMeta(
+                limit=limit,
+                offset=offset,
+                total=total,
+            ),
+            items=[ClientRead.model_validate(item) for item in items],
+        )
 
-        return self.repository.create(payload)
-
-    def list_clients(self, skip: int = 0, limit: int = 100) -> tuple[list[Client], int]:
-        return self.repository.list(skip=skip, limit=limit)
-
-    def get_client(self, client_id: int) -> Client:
-        client = self.repository.get_by_id(client_id)
-        if not client:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Client not found.",
-            )
+    @staticmethod
+    def get_client_or_raise(db: Session, client_id: int) -> Client:
+        client = ClientRepository.get_by_id(db, client_id)
+        if client is None:
+            raise ValueError("Client not found")
         return client
 
-    def update_client(self, client_id: int, payload: ClientUpdate) -> Client:
-        client = self.get_client(client_id)
+    @staticmethod
+    def create_client(db: Session, payload: ClientCreate) -> ClientRead:
+        client = ClientRepository.create(db, payload)
+        return ClientRead.model_validate(client)
 
-        if payload.email and payload.email != client.email:
-            existing = self.repository.get_by_email(payload.email)
-            if existing:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="A client with this email already exists.",
-                )
+    @staticmethod
+    def get_client(db: Session, client_id: int) -> ClientRead:
+        client = ClientService.get_client_or_raise(db, client_id)
+        return ClientRead.model_validate(client)
 
-        return self.repository.update(client, payload)
+    @staticmethod
+    def update_client(
+        db: Session,
+        client_id: int,
+        payload: ClientUpdate,
+    ) -> ClientRead:
+        client = ClientService.get_client_or_raise(db, client_id)
+        updated_client = ClientRepository.update(db, client, payload)
+        return ClientRead.model_validate(updated_client)
 
-    def delete_client(self, client_id: int) -> None:
-        client = self.get_client(client_id)
-        self.repository.delete(client)
+    @staticmethod
+    def delete_client(db: Session, client_id: int) -> None:
+        client = ClientService.get_client_or_raise(db, client_id)
+        ClientRepository.delete(db, client)

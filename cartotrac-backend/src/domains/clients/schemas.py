@@ -3,9 +3,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class ClientBase(BaseModel):
     company_name: str = Field(..., min_length=1, max_length=255)
-    contact_name: str = Field(..., min_length=1, max_length=255)
-    email: EmailStr
-    phone: str = Field(..., min_length=1, max_length=50)
+    contact_name: str | None = Field(default=None, max_length=255)
+    email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=50)
 
 
 class ClientCreate(ClientBase):
@@ -14,17 +14,23 @@ class ClientCreate(ClientBase):
 
 class ClientUpdate(BaseModel):
     company_name: str | None = Field(default=None, min_length=1, max_length=255)
-    contact_name: str | None = Field(default=None, min_length=1, max_length=255)
+    contact_name: str | None = Field(default=None, max_length=255)
     email: EmailStr | None = None
-    phone: str | None = Field(default=None, min_length=1, max_length=50)
+    phone: str | None = Field(default=None, max_length=50)
 
 
 class ClientRead(ClientBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
 
-    model_config = ConfigDict(from_attributes=True)
+
+class PaginationMeta(BaseModel):
+    limit: int
+    offset: int
+    total: int
 
 
 class ClientListResponse(BaseModel):
+    meta: PaginationMeta
     items: list[ClientRead]
-    total: int

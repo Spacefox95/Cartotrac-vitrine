@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from src.domains.clients.models import Client
@@ -6,41 +6,85 @@ from src.domains.clients.schemas import ClientCreate, ClientUpdate
 
 
 class ClientRepository:
-    def __init__(self, db: Session) -> None:
-        self.db = db
+    @staticmethod
+    def list(
+        db: Session,
+        *,
+        limit: int,
+        offset: int,
+        search: str | None = None,
+    ) -> list[Client]:
+        stmt = select(Client)
 
-    def create(self, payload: ClientCreate) -> Client:
-        client = Client(**payload.model_dump())
-        self.db.add(client)
-        self.db.commit()
-        self.db.refresh(client)
+        if search:
+            pattern = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    Client.company_name.ilike(pattern),
+                    Client.contact_name.ilike(pattern),
+                    Client.email.ilike(pattern),
+                    Client.phone.ilike(pattern),
+                )
+            )
+
+        stmt = stmt.order_by(Client.id.desc()).offset(offset).limit(limit)
+        return list(db.execute(stmt).scalars().all())
+
+    @staticmethod
+    def count(
+        db: Session,
+        *,
+        search: str | None = None,
+    ) -> int:
+        stmt = select(func.count(Client.id))
+
+        if search:
+            pattern = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    Client.company_name.ilike(pattern),
+                    Client.contact_name.ilike(pattern),
+                    Client.email.ilike(pattern),
+                    Client.phone.ilike(pattern),
+                )
+            )
+
+        return int(db.execute(stmt).scalar_one())
+
+    @staticmethod
+    def get_by_id(db: Session, client_id: int) -> Client | None:
+        stmt = select(Client).where(Client.id == client_id)
+        return db.execute(stmt).scalar_one_or_none()
+
+    @staticmethod
+    def create(db: Session, payload: ClientCreate) -> Client:
+        client = Client(
+            company_name=payload.company_name,
+            contact_name=payload.contact_name,
+            email=str(payload.email) if payload.email else None,
+            phone=payload.phone,
+        )
+        db.add(client)
+        db.commit()
+        db.refresh(client)
         return client
 
-    def list(self, skip: int = 0, limit: int = 100) -> tuple[list[Client], int]:
-        items = self.db.scalars(
-            select(Client).offset(skip).limit(limit).order_by(Client.id.desc())
-        ).all()
-
-        total = self.db.scalar(select(func.count()).select_from(Client)) or 0
-        return list(items), total
-
-    def get_by_id(self, client_id: int) -> Client | None:
-        return self.db.get(Client, client_id)
-
-    def get_by_email(self, email: str) -> Client | None:
-        return self.db.scalar(select(Client).where(Client.email == email))
-
-    def update(self, client: Client, payload: ClientUpdate) -> Client:
+    @staticmethod
+    def update(db: Session, client: Client, payload: ClientUpdate) -> Client:
         update_data = payload.model_dump(exclude_unset=True)
+
+        if "email" in update_data and update_data["email"] is not None:
+            update_data["email"] = str(update_data["email"])
 
         for field, value in update_data.items():
             setattr(client, field, value)
 
-        self.db.add(client)
-        self.db.commit()
-        self.db.refresh(client)
+        db.add(client)
+        db.commit()
+        db.refresh(client)
         return client
 
-    def delete(self, client: Client) -> None:
-        self.db.delete(client)
-        self.db.commit()
+    @staticmethod
+    def delete(db: Session, client: Client) -> None:
+        db.delete(client)
+        db.commit()
