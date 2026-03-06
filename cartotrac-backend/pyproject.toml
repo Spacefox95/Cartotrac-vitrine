@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "cartotrac-backend"
+version = "0.1.0"
+description = "Backend FastAPI du projet Cartotrac"
+authors = ["Cartotrac Team"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.116.1"
+uvicorn = { extras = ["standard"], version = "^0.35.0" }
+sqlalchemy = "^2.0.43"
+alembic = "^1.16.4"
+psycopg = { extras = ["binary"], version = "^3.2.9" }
+pydantic-settings = "^2.10.1"
+python-jose = "^3.5.0"
+passlib = "^1.7.4"
+bcrypt = "^4.2.0"
+email-validator = "^2.2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+httpx = "^0.28.1"
+ruff = "^0.12.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

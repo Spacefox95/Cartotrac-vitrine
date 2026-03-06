@@ -1,0 +1,1 @@
+HEALTH_OK_MESSAGE = "Cartotrac API is running"
