@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:17
+    container_name: cartotrac-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cartotrac
+      POSTGRES_USER: cartotrac
+      POSTGRES_PASSWORD: cartotrac
+    ports:
+      - "5432:5432"
+    volumes:
+      - cartotrac_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  cartotrac_postgres_data:
