@@ -13,10 +13,12 @@ sqlalchemy = "^2.0.43"
 alembic = "^1.16.4"
 psycopg = { extras = ["binary"], version = "^3.2.9" }
 pydantic-settings = "^2.10.1"
-python-jose = "^3.5.0"
-passlib = "^1.7.4"
-bcrypt = "^4.2.0"
+python-jose = {extras = ["cryptography"], version = "^3.5.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "4.0.1"
 email-validator = "^2.2.0"
+pyjwt = "^2.11.0"
+python-multipart = "^0.0.22"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"

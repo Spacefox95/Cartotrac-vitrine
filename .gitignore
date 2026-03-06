@@ -1,19 +1,24 @@
 # Node
 node_modules/
 dist/
+.vite/
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
 .venv/
+venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Env
 .env
-.env.local
-
-# Vite
-.vite/
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -25,7 +30,16 @@ Thumbs.db
 
 # Alembic / coverage
 .coverage
+.coverage.*
 htmlcov/
+.pytest_cache/
 
 # Logs
 *.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build / temp
+tmp/
+temp/
