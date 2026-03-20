@@ -1,10 +1,10 @@
-import { PropsWithChildren } from 'react';
 import { Box, CircularProgress } from '@mui/material';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useAppSelector } from 'app/store/hooks';
 
-const AuthGuard = ({ children }: PropsWithChildren) => {
+export default function ProtectedRoute() {
+  const location = useLocation();
   const { isAuthenticated, isBootstrapping } = useAppSelector(
     (state) => state.auth,
   );
@@ -24,10 +24,8 @@ const AuthGuard = ({ children }: PropsWithChildren) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  return <>{children}</>;
-};
-
-export default AuthGuard;
+  return <Outlet />;
+}

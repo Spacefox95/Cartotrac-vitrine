@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Box, Button, TextField } from '@mui/material';
-
+import { Alert, Box, Button, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+
 import { useAppDispatch } from 'app/store/hooks';
-import { loginSuccess } from '../store/authSlice';
+
+import { loginRequest } from '../api/auth.api';
+import { loginSuccess, logout } from '../store/authSlice';
 
 const LoginForm = () => {
   const dispatch = useAppDispatch();
@@ -11,20 +13,35 @@ const LoginForm = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!email || !password) {
+      setErrorMessage('Veuillez renseigner votre email et votre mot de passe.');
       return;
     }
 
-    dispatch(loginSuccess('fake-token'));
-    navigate('/app/dashboard');
+    try {
+      setIsSubmitting(true);
+      setErrorMessage(null);
+
+      const response = await loginRequest({ email, password });
+      dispatch(loginSuccess(response.access_token));
+      navigate('/app/dashboard');
+    } catch {
+      dispatch(logout());
+      setErrorMessage('Connexion impossible. Verifie vos identifiants ou le backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 2 }}>
+      {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
       <TextField
         label="Email"
         type="email"
@@ -39,8 +56,8 @@ const LoginForm = () => {
         onChange={(event) => setPassword(event.target.value)}
         fullWidth
       />
-      <Button type="submit" variant="contained">
-        Se connecter
+      <Button type="submit" variant="contained" disabled={isSubmitting}>
+        {isSubmitting ? 'Connexion...' : 'Se connecter'}
       </Button>
     </Box>
   );

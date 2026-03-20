@@ -1,4 +1,6 @@
-# Cartotrac-vitrine# Cartotrac
+
+```md
+# Cartotrac
 
 Plateforme web Cartotrac :
 - site vitrine
@@ -9,6 +11,17 @@ Plateforme web Cartotrac :
 
 ## Démarrage rapide
 
-### Base de données
-```bash
-make up
+Base de données :
+`make up`
+
+Backend :
+`cd cartotrac-backend`
+`cp .env.example .env`
+`poetry install`
+`poetry run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000`
+
+Frontend :
+`cd cartotrac-frontend`
+`cp .env.example .env`
+`npm install`
+`npm run dev`
