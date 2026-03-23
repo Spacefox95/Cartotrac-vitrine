@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
+from src.domains.users.schemas import UserRole
 
 
 class LoginRequest(BaseModel):
@@ -14,3 +16,6 @@ class TokenResponse(BaseModel):
 class CurrentUserResponse(BaseModel):
     email: EmailStr
     full_name: str | None = None
+    role: UserRole
+    permissions: list[str] = Field(default_factory=list)
+    is_admin: bool

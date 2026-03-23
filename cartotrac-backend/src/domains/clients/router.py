@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from src.api.dependencies.auth import get_current_user
+from src.api.dependencies.auth import require_permission
 from src.core.database import get_database
+from src.domains.auth.schemas import CurrentUserResponse
 from src.domains.clients.schemas import (
     ClientCreate,
     ClientListResponse,
@@ -11,15 +12,12 @@ from src.domains.clients.schemas import (
 )
 from src.domains.clients.service import ClientService
 
-router = APIRouter(
-    prefix='/clients',
-    tags=['clients'],
-    dependencies=[Depends(get_current_user)],
-)
+router = APIRouter(prefix='/clients', tags=['clients'])
 
 
 @router.get('', response_model=ClientListResponse)
 def list_clients(
+    current_user: CurrentUserResponse = Depends(require_permission('clients:read')),
     db: Session = Depends(get_database),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -36,6 +34,7 @@ def list_clients(
 @router.get('/{client_id}', response_model=ClientRead)
 def get_client(
     client_id: int,
+    current_user: CurrentUserResponse = Depends(require_permission('clients:read')),
     db: Session = Depends(get_database),
 ) -> ClientRead:
     try:
@@ -50,6 +49,7 @@ def get_client(
 @router.post('', response_model=ClientRead, status_code=status.HTTP_201_CREATED)
 def create_client(
     payload: ClientCreate,
+    current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
     db: Session = Depends(get_database),
 ) -> ClientRead:
     return ClientService.create_client(db, payload)
@@ -59,6 +59,7 @@ def create_client(
 def update_client(
     client_id: int,
     payload: ClientUpdate,
+    current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
     db: Session = Depends(get_database),
 ) -> ClientRead:
     try:
@@ -73,6 +74,7 @@ def update_client(
 @router.delete('/{client_id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_client(
     client_id: int,
+    current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
     db: Session = Depends(get_database),
 ) -> Response:
     try:

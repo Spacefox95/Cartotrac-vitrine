@@ -12,6 +12,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { fetchClientsRequest } from 'features/clients/api/clientsApi';
 import type { Client } from 'features/clients/types/client.types';
+import {
+  clearCadastreQuoteDraft,
+  loadCadastreQuoteDraft,
+  type CadastreQuoteDraft,
+} from 'features/cadastre/utils/cadastreQuoteDraft';
 
 import {
   createQuoteRequest,
@@ -56,6 +61,7 @@ const QuoteDetailsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cadastreDraft, setCadastreDraft] = useState<CadastreQuoteDraft | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,6 +84,7 @@ const QuoteDetailsPage = () => {
 
         setClients(clientsResponse.items);
         setQuote(quoteResponse);
+        setCadastreDraft(isCreate ? loadCadastreQuoteDraft() : null);
       } catch {
         if (isMounted) {
           setErrorMessage('Impossible de charger ce devis.');
@@ -101,6 +108,7 @@ const QuoteDetailsPage = () => {
       return {
         ...emptyQuote,
         client_id: clients[0]?.id ?? 0,
+        cadastre_context: cadastreDraft,
       };
     }
 
@@ -110,8 +118,9 @@ const QuoteDetailsPage = () => {
       status: quote.status,
       total_ht: quote.total_ht,
       total_ttc: quote.total_ttc,
+      cadastre_context: quote.cadastre_context ?? null,
     };
-  }, [clients, quote]);
+  }, [cadastreDraft, clients, quote]);
 
   const selectedClient = useMemo(
     () => clients.find((client) => client.id === quote?.client_id) ?? null,
@@ -126,6 +135,11 @@ const QuoteDetailsPage = () => {
       const response = isCreate
         ? await createQuoteRequest(values)
         : await updateQuoteRequest(quoteId, values);
+
+      if (isCreate) {
+        clearCadastreQuoteDraft();
+        setCadastreDraft(null);
+      }
 
       navigate(`/app/quotes/${response.id}`);
     } catch {
@@ -174,6 +188,73 @@ const QuoteDetailsPage = () => {
         <Button variant="text" onClick={() => navigate('/app/quotes')} sx={{ width: 'fit-content' }}>
           Retour a la liste
         </Button>
+        {isCreate && cadastreDraft ? (
+          <Paper sx={{ p: 3 }}>
+            <Stack spacing={2.5}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'stretch', md: 'flex-start' }}>
+                {cadastreDraft.preview_svg ? (
+                  <Box
+                    component="img"
+                    src={cadastreDraft.preview_svg}
+                    alt="Apercu du trace cadastre"
+                    sx={{
+                      width: { xs: '100%', md: 260 },
+                      maxWidth: 320,
+                      borderRadius: 3,
+                      border: '1px solid rgba(15, 23, 42, 0.08)',
+                      backgroundColor: '#f8fafc',
+                    }}
+                  />
+                ) : null}
+                <Stack spacing={1.25} sx={{ flex: 1 }}>
+                  <Typography variant="h4">Trace cadastre enregistre</Typography>
+                  {cadastreDraft.trace_area_sqm !== null ? (
+                    <Alert severity="success">
+                      Surface retenue pour le chiffrage: {new Intl.NumberFormat('fr-FR', {
+                        maximumFractionDigits: cadastreDraft.trace_area_sqm >= 1000 ? 0 : 1,
+                      }).format(cadastreDraft.trace_area_sqm)} m2
+                    </Alert>
+                  ) : null}
+                  <Typography color="text.secondary">
+                    {cadastreDraft.address_label ?? 'Point manuel'}
+                  </Typography>
+                  {cadastreDraft.parcel_title ? (
+                    <Typography color="text.secondary">
+                      Parcelle: {cadastreDraft.parcel_title}
+                      {cadastreDraft.parcel_subtitle ? ` · ${cadastreDraft.parcel_subtitle}` : ''}
+                    </Typography>
+                  ) : null}
+                  {cadastreDraft.parcel_area_label ? (
+                    <Typography color="text.secondary">
+                      Surface cadastrale indicative: {cadastreDraft.parcel_area_label}
+                    </Typography>
+                  ) : null}
+                  <Typography color="text.secondary">
+                    Trace enregistre le {new Intl.DateTimeFormat('fr-FR', {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(cadastreDraft.saved_at))}
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Button variant="outlined" onClick={() => navigate('/app/cadastre')}>
+                      Revenir au cadastre
+                    </Button>
+                    <Button
+                      variant="text"
+                      color="inherit"
+                      onClick={() => {
+                        clearCadastreQuoteDraft();
+                        setCadastreDraft(null);
+                      }}
+                    >
+                      Retirer ce contexte
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </Stack>
+          </Paper>
+        ) : null}
         <QuoteForm
           clients={clients}
           initialValues={initialValues}
@@ -214,6 +295,61 @@ const QuoteDetailsPage = () => {
           </Typography>
         </Stack>
       </Paper>
+
+      {quote.cadastre_context ? (
+        <Paper sx={{ p: 3 }}>
+          <Stack spacing={2.5}>
+            <Typography variant="h4">Contexte cadastre du devis</Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'stretch', md: 'flex-start' }}>
+              {quote.cadastre_context.preview_svg ? (
+                <Box
+                  component="img"
+                  src={quote.cadastre_context.preview_svg}
+                  alt="Apercu du trace associe au devis"
+                  sx={{
+                    width: { xs: '100%', md: 260 },
+                    maxWidth: 320,
+                    borderRadius: 3,
+                    border: '1px solid rgba(15, 23, 42, 0.08)',
+                    backgroundColor: '#f8fafc',
+                  }}
+                />
+              ) : null}
+              <Stack spacing={1.25} sx={{ flex: 1 }}>
+                {quote.cadastre_context.trace_area_sqm !== undefined && quote.cadastre_context.trace_area_sqm !== null ? (
+                  <Alert severity="success">
+                    Surface retenue: {new Intl.NumberFormat('fr-FR', {
+                      maximumFractionDigits: quote.cadastre_context.trace_area_sqm >= 1000 ? 0 : 1,
+                    }).format(quote.cadastre_context.trace_area_sqm)} m2
+                  </Alert>
+                ) : null}
+                {quote.cadastre_context.address_label ? (
+                  <Typography color="text.secondary">{quote.cadastre_context.address_label}</Typography>
+                ) : null}
+                {quote.cadastre_context.parcel_title ? (
+                  <Typography color="text.secondary">
+                    Parcelle: {quote.cadastre_context.parcel_title}
+                    {quote.cadastre_context.parcel_subtitle ? ` · ${quote.cadastre_context.parcel_subtitle}` : ''}
+                  </Typography>
+                ) : null}
+                {quote.cadastre_context.parcel_area_label ? (
+                  <Typography color="text.secondary">
+                    Surface cadastrale indicative: {quote.cadastre_context.parcel_area_label}
+                  </Typography>
+                ) : null}
+                {quote.cadastre_context.saved_at ? (
+                  <Typography color="text.secondary">
+                    Trace enregistre le {new Intl.DateTimeFormat('fr-FR', {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    }).format(new Date(quote.cadastre_context.saved_at))}
+                  </Typography>
+                ) : null}
+              </Stack>
+            </Stack>
+          </Stack>
+        </Paper>
+      ) : null}
 
       <Stack direction="row" spacing={2}>
         <Button variant="contained" onClick={() => navigate(`/app/quotes/${quote.id}/edit`)}>

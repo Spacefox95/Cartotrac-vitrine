@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
-from src.api.dependencies.auth import get_current_user
+from src.api.dependencies.auth import require_permission
 from src.core.database import get_database
+from src.domains.auth.schemas import CurrentUserResponse
 from src.domains.quotes.schemas import (
     QuoteCreate,
     QuoteListResponse,
@@ -11,15 +12,12 @@ from src.domains.quotes.schemas import (
 )
 from src.domains.quotes.service import QuoteService
 
-router = APIRouter(
-    prefix='/quotes',
-    tags=['quotes'],
-    dependencies=[Depends(get_current_user)],
-)
+router = APIRouter(prefix='/quotes', tags=['quotes'])
 
 
 @router.get('', response_model=QuoteListResponse)
 def list_quotes(
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:read')),
     db: Session = Depends(get_database),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -40,6 +38,7 @@ def list_quotes(
 @router.get('/{quote_id}', response_model=QuoteRead)
 def get_quote(
     quote_id: int,
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:read')),
     db: Session = Depends(get_database),
 ) -> QuoteRead:
     try:
@@ -54,6 +53,7 @@ def get_quote(
 @router.post('', response_model=QuoteRead, status_code=status.HTTP_201_CREATED)
 def create_quote(
     payload: QuoteCreate,
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:write')),
     db: Session = Depends(get_database),
 ) -> QuoteRead:
     try:
@@ -72,6 +72,7 @@ def create_quote(
 def update_quote(
     quote_id: int,
     payload: QuoteUpdate,
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:write')),
     db: Session = Depends(get_database),
 ) -> QuoteRead:
     try:
@@ -89,6 +90,7 @@ def update_quote(
 @router.delete('/{quote_id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_quote(
     quote_id: int,
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:write')),
     db: Session = Depends(get_database),
 ) -> Response:
     try:

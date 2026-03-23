@@ -67,6 +67,7 @@ const QuoteForm = ({
     await onSubmit({
       ...parsed.data,
       client_id: Number(parsed.data.client_id),
+      cadastre_context: values.cadastre_context ?? null,
     });
   };
 

@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from src.core.config import settings
 from src.db.base import Base
 from src.domains.clients import models as clients_models
+from src.domains.dashboard import models as dashboard_models
 from src.domains.quotes import models as quotes_models
 from src.domains.users import models as users_models
 

@@ -68,7 +68,7 @@ class QuoteService:
         if db.get(Client, payload.client_id) is None:
             raise ValueError('Client not found')
 
-        quote = Quote(**payload.model_dump())
+        quote = Quote(**payload.model_dump(mode='python'))
 
         try:
             db.add(quote)

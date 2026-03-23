@@ -42,5 +42,6 @@ function normalizePayload(payload: QuotePayload) {
     status: payload.status,
     total_ht: Number(payload.total_ht),
     total_ttc: Number(payload.total_ttc),
+    cadastre_context: payload.cadastre_context ?? null,
   };
 }

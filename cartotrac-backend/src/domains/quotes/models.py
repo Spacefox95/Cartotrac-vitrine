@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Numeric, String
+from sqlalchemy import ForeignKey, JSON, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -13,3 +13,4 @@ class Quote(Base):
     status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
     total_ht: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
     total_ttc: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
+    cadastre_context: Mapped[dict | None] = mapped_column(JSON, nullable=True)
