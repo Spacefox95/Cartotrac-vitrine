@@ -363,9 +363,9 @@ const DashboardContentAdminPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Titre</TableCell>
-                <TableCell>Echeance</TableCell>
+                <TableCell>Échéance</TableCell>
                 <TableCell>Statut</TableCell>
-                <TableCell>Priorite</TableCell>
+                <TableCell>Priorité</TableCell>
                 <TableCell>Progression</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -401,9 +401,9 @@ const DashboardContentAdminPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Titre</TableCell>
-                <TableCell>Debut</TableCell>
+                <TableCell>Début</TableCell>
                 <TableCell>Fin</TableCell>
-                <TableCell>Categorie</TableCell>
+                <TableCell>Catégorie</TableCell>
                 <TableCell>Assigne</TableCell>
                 <TableCell>Visio / lieu</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -440,10 +440,10 @@ const DashboardContentAdminPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Expediteur</TableCell>
+                <TableCell>Expéditeur</TableCell>
                 <TableCell>Titre</TableCell>
-                <TableCell>Categorie</TableCell>
-                <TableCell>Etat</TableCell>
+                <TableCell>Catégorie</TableCell>
+                <TableCell>État</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -472,7 +472,7 @@ const DashboardContentAdminPage = () => {
       ) : null}
 
       <Dialog open={isDialogOpen} onClose={closeDialog} fullWidth maxWidth="md">
-        <DialogTitle>{dialogMode === 'create' ? 'Creer un element' : 'Modifier un element'}</DialogTitle>
+        <DialogTitle>{dialogMode === 'create' ? 'Créer un élément' : 'Modifier un élément'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             {section === 'tasks' ? (
@@ -481,7 +481,7 @@ const DashboardContentAdminPage = () => {
                   <TextField fullWidth label="Titre" value={taskValues.title} onChange={(event) => setTaskValues((current) => ({ ...current, title: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Echeance" type="datetime-local" InputLabelProps={{ shrink: true }} value={taskValues.due_at} onChange={(event) => setTaskValues((current) => ({ ...current, due_at: event.target.value }))} />
+                  <TextField fullWidth label="Échéance" type="datetime-local" InputLabelProps={{ shrink: true }} value={taskValues.due_at} onChange={(event) => setTaskValues((current) => ({ ...current, due_at: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField fullWidth multiline minRows={3} label="Description" value={taskValues.description} onChange={(event) => setTaskValues((current) => ({ ...current, description: event.target.value }))} />
@@ -494,7 +494,7 @@ const DashboardContentAdminPage = () => {
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField select fullWidth label="Priorite" value={taskValues.priority} onChange={(event) => setTaskValues((current) => ({ ...current, priority: event.target.value }))}>
+                  <TextField select fullWidth label="Priorité" value={taskValues.priority} onChange={(event) => setTaskValues((current) => ({ ...current, priority: event.target.value }))}>
                     <MenuItem value="high">high</MenuItem>
                     <MenuItem value="medium">medium</MenuItem>
                     <MenuItem value="low">low</MenuItem>
@@ -512,7 +512,7 @@ const DashboardContentAdminPage = () => {
                   <TextField fullWidth label="Titre" value={eventValues.title} onChange={(event) => setEventValues((current) => ({ ...current, title: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField select fullWidth label="Categorie" value={eventValues.category} onChange={(event) => setEventValues((current) => ({ ...current, category: event.target.value }))}>
+                  <TextField select fullWidth label="Catégorie" value={eventValues.category} onChange={(event) => setEventValues((current) => ({ ...current, category: event.target.value }))}>
                     <MenuItem value="meeting">meeting</MenuItem>
                     <MenuItem value="client">client</MenuItem>
                     <MenuItem value="operations">operations</MenuItem>
@@ -522,7 +522,7 @@ const DashboardContentAdminPage = () => {
                   <TextField fullWidth multiline minRows={3} label="Description" value={eventValues.description} onChange={(event) => setEventValues((current) => ({ ...current, description: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Debut" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventValues.starts_at} onChange={(event) => setEventValues((current) => ({ ...current, starts_at: event.target.value }))} />
+                  <TextField fullWidth label="Début" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventValues.starts_at} onChange={(event) => setEventValues((current) => ({ ...current, starts_at: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Fin" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventValues.ends_at} onChange={(event) => setEventValues((current) => ({ ...current, ends_at: event.target.value }))} />
@@ -531,7 +531,7 @@ const DashboardContentAdminPage = () => {
                   <TextField
                     select
                     fullWidth
-                    label="Assigne a"
+                    label="Assigné à"
                     value={eventValues.assigned_user_id === null ? '' : String(eventValues.assigned_user_id)}
                     onChange={(event) =>
                       setEventValues((current) => ({
@@ -540,7 +540,7 @@ const DashboardContentAdminPage = () => {
                       }))
                     }
                   >
-                    <MenuItem value="">Non assigne</MenuItem>
+                  <MenuItem value="">Non assigné</MenuItem>
                     {users.map((user) => (
                       <MenuItem key={user.id} value={String(user.id)}>
                         {(user.full_name ?? user.email) + ' · ' + user.role}
@@ -560,7 +560,7 @@ const DashboardContentAdminPage = () => {
             {section === 'notifications' ? (
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Expediteur" value={notificationValues.sender} onChange={(event) => setNotificationValues((current) => ({ ...current, sender: event.target.value }))} />
+                  <TextField fullWidth label="Expéditeur" value={notificationValues.sender} onChange={(event) => setNotificationValues((current) => ({ ...current, sender: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Titre" value={notificationValues.title} onChange={(event) => setNotificationValues((current) => ({ ...current, title: event.target.value }))} />
@@ -569,7 +569,7 @@ const DashboardContentAdminPage = () => {
                   <TextField fullWidth multiline minRows={3} label="Message" value={notificationValues.message} onChange={(event) => setNotificationValues((current) => ({ ...current, message: event.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField select fullWidth label="Categorie" value={notificationValues.category} onChange={(event) => setNotificationValues((current) => ({ ...current, category: event.target.value }))}>
+                  <TextField select fullWidth label="Catégorie" value={notificationValues.category} onChange={(event) => setNotificationValues((current) => ({ ...current, category: event.target.value }))}>
                     <MenuItem value="general">general</MenuItem>
                     <MenuItem value="message">message</MenuItem>
                     <MenuItem value="alert">alert</MenuItem>

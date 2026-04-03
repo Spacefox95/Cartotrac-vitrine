@@ -137,10 +137,10 @@ const DashboardPage = () => {
   const quickActions = [
     {
       title: 'Nouveau devis',
-      description: 'Creer directement une nouvelle proposition commerciale.',
+      description: 'Créer directement une nouvelle proposition commerciale.',
       icon: <DescriptionOutlined fontSize="small" />,
       to: canWriteQuotes ? '/app/quotes/new' : '/app/quotes',
-      helper: canWriteQuotes ? 'Ouvre la creation de devis.' : 'Ouvre la liste des devis.',
+      helper: canWriteQuotes ? 'Ouvre la création de devis.' : 'Ouvre la liste des devis.',
       disabled: false,
     },
     {
@@ -148,17 +148,17 @@ const DashboardPage = () => {
       description: 'Ajouter un compte client et lancer sa fiche.',
       icon: <PeopleAltOutlined fontSize="small" />,
       to: canWriteClients ? '/app/clients/new' : '/app/clients',
-      helper: canWriteClients ? 'Ouvre la creation de client.' : 'Ouvre la base clients.',
+      helper: canWriteClients ? 'Ouvre la création de client.' : 'Ouvre la base clients.',
       disabled: false,
     },
     {
-      title: 'Gerer planning',
+      title: 'Gérer planning',
       description: canManageDashboard
-        ? 'Acceder a la gestion des evenements du dashboard.'
+        ? 'Accéder à la gestion des événements du dashboard.'
         : 'Consulter le planning courant du tableau de bord.',
       icon: <EventAvailable fontSize="small" />,
       to: planningRoute,
-      helper: canManageDashboard ? "Ouvre l'onglet evenements." : "Reste sur le planning visible dans le dashboard.",
+      helper: canManageDashboard ? "Ouvre l'onglet événements." : "Reste sur le planning visible dans le dashboard.",
       disabled: false,
     },
     {
@@ -486,7 +486,7 @@ const DashboardPage = () => {
       setIsEventDialogOpen(false);
       await loadDashboard();
     } catch {
-      setEventSubmitError("Impossible d'enregistrer cet evenement pour le moment.");
+      setEventSubmitError("Impossible d'enregistrer cet événement pour le moment.");
     } finally {
       setIsEventSubmitting(false);
     }
@@ -520,7 +520,7 @@ const DashboardPage = () => {
       await markDashboardMessageReadRequest(messageId);
       await Promise.all([loadDashboard(), loadMessages()]);
     } catch {
-      setErrorMessage('Impossible de mettre ce message a jour.');
+      setErrorMessage('Impossible de mettre ce message à jour.');
     }
   };
 
@@ -570,11 +570,11 @@ const DashboardPage = () => {
               />
               <Box>
                 <Typography variant="h2" sx={{ maxWidth: 640, mb: 1.25, color: '#fff' }}>
-                  Bonjour {firstName}, voici votre tour de controle Cartotrac.
+                  Bonjour {firstName}, voici votre tour de contrôle Cartotrac.
                 </Typography>
                 <Typography sx={{ maxWidth: 620, color: 'rgba(255,255,255,0.8)', fontSize: '1.02rem' }}>
-                  Vous avez {summary.today_events_total} rendez-vous planifies, {summary.open_tasks_total}{' '}
-                  taches ouvertes et {summary.unread_notifications_total} notifications a surveiller.
+                  Vous avez {summary.today_events_total} rendez-vous planifiés, {summary.open_tasks_total}{' '}
+                  tâches ouvertes et {summary.unread_notifications_total} notifications à surveiller.
                 </Typography>
               </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
@@ -615,7 +615,7 @@ const DashboardPage = () => {
               }}
             >
               <Typography variant="overline" sx={{ letterSpacing: '0.12em', color: 'rgba(255,255,255,0.72)' }}>
-                Flash operations
+                Flash opérations
               </Typography>
               <Stack spacing={1.25}>
                 <HeroMetric
@@ -626,12 +626,12 @@ const DashboardPage = () => {
                 <HeroMetric
                   icon={<ChatBubbleOutline />}
                   value={String(notifications.length)}
-                  label="messages et alertes recents"
+                  label="messages et alertes récents"
                 />
                 <HeroMetric
                   icon={<CalendarMonth />}
                   value={String(summary.today_events_total)}
-                  label="evenements planifies aujourd'hui"
+                  label="événements planifiés aujourd'hui"
                 />
               </Stack>
             </Stack>
@@ -654,7 +654,7 @@ const DashboardPage = () => {
           <DashboardStatCard
             title="Calendrier"
             value={String(summary.today_events_total)}
-            subtitle="evenements programmes pour aujourd'hui"
+            subtitle="événements programmés pour aujourd'hui"
             tone="teal"
           />
         </Grid>
@@ -662,7 +662,7 @@ const DashboardPage = () => {
           <DashboardStatCard
             title="Notifications"
             value={String(summary.unread_notifications_total)}
-            subtitle={String(notifications.length) + ' elements recents dans le flux interne'}
+            subtitle={String(notifications.length) + ' éléments récents dans le flux interne'}
             tone="amber"
           />
         </Grid>
@@ -670,7 +670,7 @@ const DashboardPage = () => {
           <DashboardStatCard
             title="Portefeuille clients"
             value={String(summary.clients_total)}
-            subtitle={String(summary.sent_quotes_total) + ' devis envoyes et suivis commerciaux'}
+            subtitle={String(summary.sent_quotes_total) + ' devis envoyés et suivis commerciaux'}
             tone="rose"
           />
         </Grid>
@@ -693,7 +693,7 @@ const DashboardPage = () => {
                   <Typography variant="h5">Calendrier</Typography>
                   <Typography color="text.secondary">{monthLabel}</Typography>
                 </Box>
-                <Chip icon={<CalendarMonth />} label={String(events.length) + ' a venir'} variant="outlined" />
+                <Chip icon={<CalendarMonth />} label={String(events.length) + ' à venir'} variant="outlined" />
               </Stack>
 
               <Grid container columns={7} spacing={1}>
@@ -753,7 +753,7 @@ const DashboardPage = () => {
                 <Box>
                   <Typography variant="h6">Programme du {selectedDayLabel}</Typography>
                   <Typography color="text.secondary">
-                    {selectedDayEvents.length} rendez-vous planifie{selectedDayEvents.length > 1 ? 's' : ''}
+                    {selectedDayEvents.length} rendez-vous planifié{selectedDayEvents.length > 1 ? 's' : ''}
                   </Typography>
                 </Box>
               </Stack>
@@ -770,9 +770,9 @@ const DashboardPage = () => {
                       bgcolor: 'rgba(247, 249, 252, 0.72)',
                     }}
                   >
-                    <Typography fontWeight={700}>Aucun evenement planifie</Typography>
+                    <Typography fontWeight={700}>Aucun événement planifié</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Selectionnez un autre jour ou cliquez sur une date pour programmer un rendez-vous.
+                      Sélectionnez un autre jour ou cliquez sur une date pour programmer un rendez-vous.
                     </Typography>
                   </Paper>
                 )}
@@ -793,8 +793,8 @@ const DashboardPage = () => {
             <Stack spacing={2.5}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Box>
-                  <Typography variant="h5">Taches a faire</Typography>
-                  <Typography color="text.secondary">Priorites synchronisees depuis l'API</Typography>
+                  <Typography variant="h5">Tâches à faire</Typography>
+                  <Typography color="text.secondary">Priorités synchronisées depuis l'API</Typography>
                 </Box>
                 <Chip label={String(summary.open_tasks_total) + ' ouvertes'} color="warning" variant="outlined" />
               </Stack>
@@ -821,7 +821,7 @@ const DashboardPage = () => {
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Box>
                     <Typography variant="h5">Messagerie</Typography>
-                    <Typography color="text.secondary">Conversations equipe et alertes utiles</Typography>
+                    <Typography color="text.secondary">Conversations équipe et alertes utiles</Typography>
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Chip label={String(summary.unread_notifications_total) + ' non lus'} color="primary" variant="outlined" />
@@ -904,7 +904,7 @@ const DashboardPage = () => {
                               </Typography>
                             </Box>
                             <Button size="small" onClick={() => openMessageDialog(selectedConversation.contact.id)}>
-                              Repondre
+                              Répondre
                             </Button>
                           </Stack>
 
@@ -952,7 +952,7 @@ const DashboardPage = () => {
                               })
                             ) : (
                               <Box sx={{ py: 4 }}>
-                                <Typography fontWeight={700}>Aucun echange pour le moment</Typography>
+                                <Typography fontWeight={700}>Aucun échange pour le moment</Typography>
                                 <Typography variant="body2" color="text.secondary">
                                   Lancez la conversation avec ce contact directement depuis le dashboard.
                                 </Typography>
@@ -962,7 +962,7 @@ const DashboardPage = () => {
                         </Stack>
                       ) : (
                         <Box sx={{ py: 4 }}>
-                          <Typography fontWeight={700}>Aucun contact selectionne</Typography>
+                          <Typography fontWeight={700}>Aucun contact sélectionné</Typography>
                           <Typography variant="body2" color="text.secondary">
                             Choisissez un contact pour afficher la conversation.
                           </Typography>
@@ -982,7 +982,7 @@ const DashboardPage = () => {
               }}
             >
               <Stack spacing={2}>
-                <Typography variant="h5">Devis recents</Typography>
+                <Typography variant="h5">Devis récents</Typography>
                 <Stack spacing={1.25}>
                   {recentQuotes.map((quote) => (
                     <Box
@@ -1072,7 +1072,7 @@ const DashboardPage = () => {
       </Grid>
       </Stack>
       <Dialog open={isEventDialogOpen} onClose={() => setIsEventDialogOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Programmer un evenement</DialogTitle>
+        <DialogTitle>Programmer un événement</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <Grid container spacing={2}>
@@ -1088,7 +1088,7 @@ const DashboardPage = () => {
                 <TextField
                   select
                   fullWidth
-                  label="Categorie"
+                  label="Catégorie"
                   value={eventDraft.category}
                   onChange={(event) => setEventDraft((current) => ({ ...current, category: event.target.value }))}
                 >
@@ -1111,7 +1111,7 @@ const DashboardPage = () => {
                 <TextField
                   fullWidth
                   type="datetime-local"
-                  label="Debut"
+                  label="Début"
                   InputLabelProps={{ shrink: true }}
                   value={eventDraft.starts_at}
                   onChange={(event) => setEventDraft((current) => ({ ...current, starts_at: event.target.value }))}
@@ -1131,7 +1131,7 @@ const DashboardPage = () => {
                 <TextField
                   select
                   fullWidth
-                  label="Assigne a"
+                  label="Assigné à"
                   value={eventDraft.assigned_user_id === null ? '' : String(eventDraft.assigned_user_id)}
                   onChange={(event) =>
                     setEventDraft((current) => ({
@@ -1140,7 +1140,7 @@ const DashboardPage = () => {
                     }))
                   }
                 >
-                  <MenuItem value="">Non assigne</MenuItem>
+                  <MenuItem value="">Non assigné</MenuItem>
                   {users.map((user) => (
                     <MenuItem key={user.id} value={String(user.id)}>
                       {(user.full_name ?? user.email) + ' · ' + user.role}
@@ -1274,7 +1274,7 @@ const EventRow = ({ event }: EventRowProps) => {
           <Box>
             <Typography fontWeight={700}>{event.title}</Typography>
             <Typography variant="body2" color="text.secondary">
-              {event.description ?? 'Evenement planifie'}
+              {event.description ?? 'Événement planifié'}
             </Typography>
           </Box>
           <Chip label={formatDateTime(event.starts_at)} size="small" />
@@ -1283,14 +1283,14 @@ const EventRow = ({ event }: EventRowProps) => {
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
           <Chip label={event.category} size="small" variant="outlined" />
           {event.assigned_user_name ? (
-            <Chip label={'Assigne: ' + event.assigned_user_name} size="small" variant="outlined" />
+            <Chip label={'Assigné : ' + event.assigned_user_name} size="small" variant="outlined" />
           ) : null}
           {event.location ? <Chip label={event.location} size="small" variant="outlined" /> : null}
         </Stack>
 
         {event.meeting_url ? (
           <Link href={event.meeting_url} target="_blank" rel="noreferrer" underline="hover" sx={{ fontWeight: 700 }}>
-            Ouvrir le lien de reunion
+            Ouvrir le lien de réunion
           </Link>
         ) : null}
       </Stack>

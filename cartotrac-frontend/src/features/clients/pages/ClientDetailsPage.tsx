@@ -111,7 +111,7 @@ const ClientDetailsPage = () => {
     }
 
     const confirmed = window.confirm(
-      'Supprimer ce client ? Cette action est irreversible.',
+      'Supprimer ce client ? Cette action est irréversible.',
     );
 
     if (!confirmed) {
@@ -125,7 +125,7 @@ const ClientDetailsPage = () => {
       navigate('/app/clients');
     } catch {
       setErrorMessage(
-        'Suppression impossible. Ce client a peut-etre des devis associes.',
+        'Suppression impossible. Ce client a peut-être des devis associés.',
       );
     } finally {
       setIsSubmitting(false);
@@ -144,12 +144,12 @@ const ClientDetailsPage = () => {
     return (
       <Stack spacing={3}>
         <Button variant="text" onClick={() => navigate('/app/clients')} sx={{ width: 'fit-content' }}>
-          Retour a la liste
+          Retour à la liste
         </Button>
         <ClientForm
           initialValues={initialValues}
           title={isCreate ? 'Nouveau client' : 'Modifier le client'}
-          submitLabel={isCreate ? 'Creer le client' : 'Enregistrer les modifications'}
+          submitLabel={isCreate ? 'Créer le client' : 'Enregistrer les modifications'}
           isSubmitting={isSubmitting}
           submitError={errorMessage}
           onSubmit={handleSubmit}
@@ -167,20 +167,20 @@ const ClientDetailsPage = () => {
       {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
       <Button variant="text" onClick={() => navigate('/app/clients')} sx={{ width: 'fit-content' }}>
-        Retour a la liste
+        Retour à la liste
       </Button>
 
       <Paper sx={{ p: 3 }}>
         <Stack spacing={2}>
           <Typography variant="h2">{client.company_name}</Typography>
           <Typography color="text.secondary">
-            Contact: {client.contact_name ?? 'Non renseigne'}
+            Contact: {client.contact_name ?? 'Non renseigné'}
           </Typography>
           <Typography color="text.secondary">
-            Email: {client.email ?? 'Non renseigne'}
+            Email: {client.email ?? 'Non renseigné'}
           </Typography>
           <Typography color="text.secondary">
-            Telephone: {client.phone ?? 'Non renseigne'}
+            Téléphone: {client.phone ?? 'Non renseigné'}
           </Typography>
         </Stack>
       </Paper>

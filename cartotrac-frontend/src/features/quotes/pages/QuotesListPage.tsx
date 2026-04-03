@@ -32,7 +32,7 @@ const QuotesListPage = () => {
 
   const handleDelete = async (quoteId: number) => {
     const confirmed = window.confirm(
-      'Supprimer ce devis ? Cette action est irreversible.',
+      'Supprimer ce devis ? Cette action est irréversible.',
     );
 
     if (!confirmed) {

@@ -169,7 +169,7 @@ const UsersAdminPage = () => {
               {users.map((user) => (
                 <TableRow key={user.id} hover>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.full_name ?? 'Non renseigne'}</TableCell>
+                  <TableCell>{user.full_name ?? 'Non renseigné'}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
@@ -222,13 +222,13 @@ const UsersAdminPage = () => {
         maxWidth="sm"
       >
         <DialogTitle>
-          {dialogMode === 'create' ? 'Creer un utilisateur' : 'Modifier utilisateur'}
+          {dialogMode === 'create' ? 'Créer un utilisateur' : 'Modifier utilisateur'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 1 }}>
             <UserForm
               title={dialogMode === 'create' ? 'Nouvel utilisateur' : 'Edition utilisateur'}
-              submitLabel={dialogMode === 'create' ? 'Creer le compte' : 'Enregistrer'}
+              submitLabel={dialogMode === 'create' ? 'Créer le compte' : 'Enregistrer'}
               initialValues={initialValues}
               submitError={errorMessage}
               isSubmitting={isSubmitting}

@@ -77,7 +77,7 @@ const ClientForm = ({
           fullWidth
         />
         <TextField
-          label="Telephone"
+          label="Téléphone"
           value={values.phone}
           onChange={handleChange('phone')}
           fullWidth

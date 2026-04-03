@@ -1,5 +1,6 @@
 import { Email, Phone, Place, ScheduleSend } from '@mui/icons-material';
-import { Grid, Paper, Stack, Typography } from '@mui/material';
+import { Grid, Link, Paper, Stack, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 import HeroSection from 'features/public/components/HeroSection';
 
@@ -101,6 +102,28 @@ const ContactPage = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+        <Stack spacing={1.25}>
+          <Typography variant="h3">Information données personnelles</Typography>
+          <Typography color="text.secondary">
+            Les informations que vous nous transmettez par email ou téléphone sont utilisées pour répondre à votre demande, qualifier votre besoin et, si vous le
+            souhaitez, préparer un devis ou un prochain échange.
+          </Typography>
+          <Typography color="text.secondary">
+            Elles sont accessibles aux seules personnes habilitées et conservées au maximum pendant 3 ans après le dernier contact lorsqu’il s’agit d’un prospect,
+            sauf si une relation contractuelle est ensuite engagée.
+          </Typography>
+          <Typography color="text.secondary">
+            Vous pouvez exercer vos droits à l’adresse contact@cartotrac.fr. En savoir plus dans la
+            {' '}
+            <Link component={RouterLink} to="/confidentialite" underline="hover">
+              politique de confidentialité
+            </Link>
+            .
+          </Typography>
+        </Stack>
+      </Paper>
     </Stack>
   );
 };

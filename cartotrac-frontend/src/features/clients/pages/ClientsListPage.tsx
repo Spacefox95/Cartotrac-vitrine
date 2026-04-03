@@ -32,7 +32,7 @@ const ClientsListPage = () => {
 
   const handleDelete = async (clientId: number) => {
     const confirmed = window.confirm(
-      'Supprimer ce client ? Cette action est irreversible.',
+      'Supprimer ce client ? Cette action est irréversible.',
     );
 
     if (!confirmed) {
@@ -48,7 +48,7 @@ const ClientsListPage = () => {
       const message = error instanceof Error ? error.message : '';
       setActionError(
         message ||
-          'Suppression impossible. Ce client a peut-etre des devis associes.',
+          'Suppression impossible. Ce client a peut-être des devis associés.',
       );
     } finally {
       setIsDeleting(false);
@@ -65,7 +65,7 @@ const ClientsListPage = () => {
         <Box>
           <Typography variant="h2">Clients</Typography>
           <Typography color="text.secondary">
-            {total} client{total > 1 ? 's' : ''} charge{total > 1 ? 's' : ''}
+            {total} client{total > 1 ? 's' : ''} chargé{total > 1 ? 's' : ''}
           </Typography>
         </Box>
 

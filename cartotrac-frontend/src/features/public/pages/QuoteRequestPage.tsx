@@ -1,5 +1,5 @@
 import { East, Inventory2, LocationOn, Schedule, WorkOutline } from '@mui/icons-material';
-import { Button, Grid, Paper, Stack, Typography } from '@mui/material';
+import { Button, Grid, Link, Paper, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
 import HeroSection from 'features/public/components/HeroSection';
@@ -98,6 +98,28 @@ const QuoteRequestPage = () => {
           <Button variant="contained" component={RouterLink} to="/contact" endIcon={<East />}>
             Aller à la page contact
           </Button>
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+        <Stack spacing={1.25}>
+          <Typography variant="h3">Traitement des demandes</Typography>
+          <Typography color="text.secondary">
+            Les informations communiquées pour une demande de devis sont utilisées pour étudier votre besoin, reprendre contact avec vous et préparer une proposition
+            adaptée.
+          </Typography>
+          <Typography color="text.secondary">
+            Ne transmettez que les informations utiles au cadrage de la demande. Les données de prospects sont conservées au maximum 3 ans après le dernier contact,
+            sauf poursuite de la relation dans un cadre contractuel.
+          </Typography>
+          <Typography color="text.secondary">
+            Plus de détails sont disponibles dans la
+            {' '}
+            <Link component={RouterLink} to="/confidentialite" underline="hover">
+              politique de confidentialité
+            </Link>
+            .
+          </Typography>
         </Stack>
       </Paper>
     </Stack>

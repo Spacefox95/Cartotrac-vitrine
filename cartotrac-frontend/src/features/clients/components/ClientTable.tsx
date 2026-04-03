@@ -21,7 +21,7 @@ type ClientTableProps = {
   isDeleting: boolean;
 };
 
-const fallback = 'Non renseigne';
+const fallback = 'Non renseigné';
 
 const ClientTable = ({
   clients,
@@ -38,7 +38,7 @@ const ClientTable = ({
             <TableCell>Entreprise</TableCell>
             <TableCell>Contact</TableCell>
             <TableCell>Email</TableCell>
-            <TableCell>Telephone</TableCell>
+            <TableCell>Téléphone</TableCell>
             <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>

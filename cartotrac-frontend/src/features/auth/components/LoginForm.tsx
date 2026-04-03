@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Alert, Box, Button, TextField } from '@mui/material';
+import { Alert, Box, Button, Link, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 import { useAppDispatch } from 'app/store/hooks';
 
@@ -33,7 +34,7 @@ const LoginForm = () => {
       navigate('/app/dashboard');
     } catch {
       dispatch(logout());
-      setErrorMessage('Connexion impossible. Verifie vos identifiants ou le backend.');
+      setErrorMessage('Connexion impossible. Vérifiez vos identifiants ou le backend.');
     } finally {
       setIsSubmitting(false);
     }
@@ -59,6 +60,20 @@ const LoginForm = () => {
       <Button type="submit" variant="contained" disabled={isSubmitting}>
         {isSubmitting ? 'Connexion...' : 'Se connecter'}
       </Button>
+      <Typography variant="body2" color="text.secondary">
+        La connexion conserve un jeton technique dans votre navigateur pour maintenir la session. Plus d’informations dans la
+        {' '}
+        <Link component={RouterLink} to="/confidentialite" underline="hover">
+          politique de confidentialité
+        </Link>
+        {' '}
+        et la
+        {' '}
+        <Link component={RouterLink} to="/cookies" underline="hover">
+          politique de cookies
+        </Link>
+        .
+      </Typography>
     </Box>
   );
 };

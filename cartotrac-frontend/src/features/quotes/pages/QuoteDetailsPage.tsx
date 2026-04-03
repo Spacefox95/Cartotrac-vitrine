@@ -158,9 +158,7 @@ const QuoteDetailsPage = () => {
       return;
     }
 
-    const confirmed = window.confirm(
-      'Supprimer ce devis ? Cette action est irreversible.',
-    );
+    const confirmed = window.confirm('Supprimer ce devis ? Cette action est irréversible.');
 
     if (!confirmed) {
       return;
@@ -197,7 +195,7 @@ const QuoteDetailsPage = () => {
       link.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch {
-      setErrorMessage('Telechargement du PDF impossible pour le moment.');
+      setErrorMessage('Téléchargement du PDF impossible pour le moment.');
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -215,7 +213,7 @@ const QuoteDetailsPage = () => {
     return (
       <Stack spacing={3}>
         <Button variant="text" onClick={() => navigate('/app/quotes')} sx={{ width: 'fit-content' }}>
-          Retour a la liste
+          Retour à la liste
         </Button>
         {isCreate && cadastreDraft ? (
           <Paper sx={{ p: 3 }}>
@@ -225,7 +223,7 @@ const QuoteDetailsPage = () => {
                   <Box
                     component="img"
                     src={cadastreDraft.preview_svg}
-                    alt="Apercu du trace cadastre"
+                    alt="Aperçu du tracé cadastre"
                     sx={{
                       width: { xs: '100%', md: 260 },
                       maxWidth: 320,
@@ -236,10 +234,10 @@ const QuoteDetailsPage = () => {
                   />
                 ) : null}
                 <Stack spacing={1.25} sx={{ flex: 1 }}>
-                  <Typography variant="h4">Trace cadastre enregistre</Typography>
+                  <Typography variant="h4">Tracé cadastre enregistré</Typography>
                   {cadastreDraft.trace_area_sqm !== null ? (
                     <Alert severity="success">
-                      Surface retenue pour le chiffrage: {new Intl.NumberFormat('fr-FR', {
+                      Surface retenue pour le chiffrage : {new Intl.NumberFormat('fr-FR', {
                         maximumFractionDigits: cadastreDraft.trace_area_sqm >= 1000 ? 0 : 1,
                       }).format(cadastreDraft.trace_area_sqm)} m2
                     </Alert>
@@ -259,7 +257,7 @@ const QuoteDetailsPage = () => {
                     </Typography>
                   ) : null}
                   <Typography color="text.secondary">
-                    Trace enregistre le {new Intl.DateTimeFormat('fr-FR', {
+                    Tracé enregistré le {new Intl.DateTimeFormat('fr-FR', {
                       dateStyle: 'short',
                       timeStyle: 'short',
                     }).format(new Date(cadastreDraft.saved_at))}
@@ -292,7 +290,7 @@ const QuoteDetailsPage = () => {
                   <Box
                     component="img"
                     src={cadastreDraft.preview_svg}
-                    alt="Apercu du trace cadastre"
+                    alt="Aperçu du tracé cadastre"
                     sx={{
                       width: { xs: '100%', md: 260 },
                       maxWidth: 320,
@@ -303,10 +301,10 @@ const QuoteDetailsPage = () => {
                   />
                 ) : null}
                 <Stack spacing={1.25} sx={{ flex: 1 }}>
-                  <Typography variant="h4">Nouveau trace cadastre pret a etre applique</Typography>
+                  <Typography variant="h4">Nouveau tracé cadastre prêt à être appliqué</Typography>
                   {cadastreDraft.trace_area_sqm !== null ? (
                     <Alert severity="success">
-                      Surface retenue pour la mise a jour: {new Intl.NumberFormat('fr-FR', {
+                      Surface retenue pour la mise à jour : {new Intl.NumberFormat('fr-FR', {
                         maximumFractionDigits: cadastreDraft.trace_area_sqm >= 1000 ? 0 : 1,
                       }).format(cadastreDraft.trace_area_sqm)} m2
                     </Alert>
@@ -338,7 +336,7 @@ const QuoteDetailsPage = () => {
           clients={clients}
           initialValues={initialValues}
           title={isCreate ? 'Nouveau devis' : 'Modifier le devis'}
-          submitLabel={isCreate ? 'Creer le devis' : 'Enregistrer les modifications'}
+          submitLabel={isCreate ? 'Créer le devis' : 'Enregistrer les modifications'}
           isSubmitting={isSubmitting}
           submitError={errorMessage}
           onSubmit={handleSubmit}
@@ -356,7 +354,7 @@ const QuoteDetailsPage = () => {
       {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
       <Button variant="text" onClick={() => navigate('/app/quotes')} sx={{ width: 'fit-content' }}>
-        Retour a la liste
+        Retour à la liste
       </Button>
 
       <Paper sx={{ p: 3 }}>
@@ -384,7 +382,7 @@ const QuoteDetailsPage = () => {
                 <Box
                   component="img"
                   src={quote.cadastre_context.preview_svg}
-                  alt="Apercu du trace associe au devis"
+                  alt="Aperçu du tracé associé au devis"
                   sx={{
                     width: { xs: '100%', md: 260 },
                     maxWidth: 320,
@@ -442,7 +440,7 @@ const QuoteDetailsPage = () => {
           {isDownloadingPdf ? 'Generation du PDF...' : 'Telecharger le PDF'}
         </Button>
         <Button variant="outlined" onClick={() => navigate(`/app/cadastre?quoteId=${quote.id}`)}>
-          Mettre a jour le cadastre
+          Mettre à jour le cadastre
         </Button>
         <Button
           variant="outlined"

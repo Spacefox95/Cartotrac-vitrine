@@ -50,7 +50,7 @@ const Footer = () => {
                   component={RouterLink}
                   to={item.to}
                   color="inherit"
-                  sx={{ justifyContent: 'flex-start', px: 0, color: 'text.secondary' }}
+                  sx={{ justifyContent: 'flex-start', px: 1, color: 'text.secondary' }}
                 >
                   {item.label}
                 </Button>
@@ -68,7 +68,7 @@ const Footer = () => {
                   component={RouterLink}
                   to={item.to}
                   color="inherit"
-                  sx={{ justifyContent: 'flex-start', px: 0, color: 'text.secondary' }}
+                  sx={{ justifyContent: 'flex-start', px: 1, color: 'text.secondary' }}
                 >
                   {item.label}
                 </Button>
@@ -76,7 +76,7 @@ const Footer = () => {
             </Stack>
           </Grid>
         </Grid>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 4 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
           © Cartotrac • Site vitrine et plateforme de repérage commercial et cartographique.
         </Typography>
       </Box>
