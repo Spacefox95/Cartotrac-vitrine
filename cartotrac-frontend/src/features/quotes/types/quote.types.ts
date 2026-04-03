@@ -8,7 +8,6 @@ export type QuoteCadastreContext = {
   parcel_subtitle?: string | null;
   parcel_area_label?: string | null;
   measured_area_sqm?: number | null;
-  estimated_building_area_sqm?: number | null;
   trace_area_sqm?: number | null;
   trace_points?: Array<[number, number]>;
   preview_svg?: string | null;

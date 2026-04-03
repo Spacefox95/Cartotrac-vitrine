@@ -149,6 +149,23 @@ def test_viewer_has_read_only_access(
     assert update_quote_response.json() == {'detail': 'Insufficient permissions'}
 
 
+def test_viewer_can_download_quote_pdf(
+    client: TestClient,
+    seeded_data: dict[str, object],
+) -> None:
+    quote = seeded_data['quote']
+
+    response = client.get(
+        f'/api/v1/quotes/{quote.id}/pdf',
+        headers=auth_headers('viewer@cartotrac.com'),
+    )
+
+    assert response.status_code == 200
+    assert response.headers['content-type'] == 'application/pdf'
+    assert 'attachment; filename="Q-001.pdf"' == response.headers['content-disposition']
+    assert response.content.startswith(b'%PDF-1.4')
+
+
 def test_dashboard_returns_live_summary_and_recent_items(
     client: TestClient,
     seeded_data: dict[str, object],
@@ -173,8 +190,106 @@ def test_dashboard_returns_live_summary_and_recent_items(
     }
     assert payload['tasks'][0]['title'] == 'Relancer Q-001'
     assert payload['events'][0]['title'] == 'Revue commerciale'
-    assert payload['notifications'][0]['sender'] == 'Sonia - ADV'
+    assert payload['events'][0]['assigned_user_name'] == 'Manager User'
+    assert payload['events'][0]['meeting_url'] == 'https://zoom.us/j/123456789'
+    assert payload['notifications'][0]['sender'] == 'Manager User'
+    assert payload['notifications'][0]['recipient_email'] == 'admin@cartotrac.com'
     assert payload['recent_quotes'][0]['reference'] == 'Q-002'
+
+
+def test_admin_can_crud_dashboard_events_with_assignment_and_meeting_link(
+    client: TestClient,
+    seeded_data: dict[str, object],
+) -> None:
+    users = seeded_data['users']
+    manager = users['manager']
+
+    create_response = client.post(
+        '/api/v1/dashboard/events',
+        headers=auth_headers('admin@cartotrac.com'),
+        json={
+            'title': 'Point Zoom client',
+            'description': 'Validation du cadrage et du prochain sprint.',
+            'starts_at': '2026-04-03T09:30:00',
+            'ends_at': '2026-04-03T10:15:00',
+            'category': 'client',
+            'assigned_user_id': manager.id,
+            'location': 'Visio',
+            'meeting_url': 'https://zoom.us/j/987654321',
+        },
+    )
+    assert create_response.status_code == 201
+    event_id = create_response.json()['id']
+    assert create_response.json()['assigned_user_name'] == 'Manager User'
+    assert create_response.json()['meeting_url'] == 'https://zoom.us/j/987654321'
+
+    update_response = client.patch(
+        '/api/v1/dashboard/events/' + str(event_id),
+        headers=auth_headers('admin@cartotrac.com'),
+        json={
+            'location': 'Salle projet / Zoom',
+            'meeting_url': 'https://zoom.us/j/111222333',
+        },
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()['location'] == 'Salle projet / Zoom'
+    assert update_response.json()['meeting_url'] == 'https://zoom.us/j/111222333'
+
+    list_response = client.get(
+        '/api/v1/dashboard/events',
+        headers=auth_headers('admin@cartotrac.com'),
+    )
+    assert list_response.status_code == 200
+    assert list_response.json()['total'] == 2
+
+    delete_response = client.delete(
+        '/api/v1/dashboard/events/' + str(event_id),
+        headers=auth_headers('admin@cartotrac.com'),
+    )
+    assert delete_response.status_code == 204
+
+
+def test_authenticated_user_can_send_and_read_messages(
+    client: TestClient,
+    seeded_data: dict[str, object],
+) -> None:
+    users = seeded_data['users']
+    admin = users['admin']
+
+    contacts_response = client.get(
+        '/api/v1/dashboard/message-contacts',
+        headers=auth_headers('manager@cartotrac.com'),
+    )
+    assert contacts_response.status_code == 200
+    assert contacts_response.json()['total'] == 3
+
+    send_response = client.post(
+        '/api/v1/dashboard/messages',
+        headers=auth_headers('manager@cartotrac.com'),
+        json={
+          'recipient_user_id': admin.id,
+          'title': 'Point rapide',
+          'message': 'On valide la priorite du client ACME cet apres-midi.',
+        },
+    )
+    assert send_response.status_code == 201
+    message_id = send_response.json()['id']
+    assert send_response.json()['sender_email'] == 'manager@cartotrac.com'
+    assert send_response.json()['recipient_email'] == 'admin@cartotrac.com'
+
+    list_response = client.get(
+        '/api/v1/dashboard/messages',
+        headers=auth_headers('admin@cartotrac.com'),
+    )
+    assert list_response.status_code == 200
+    assert list_response.json()['total'] >= 2
+
+    read_response = client.patch(
+        f'/api/v1/dashboard/messages/{message_id}/read',
+        headers=auth_headers('admin@cartotrac.com'),
+    )
+    assert read_response.status_code == 200
+    assert read_response.json()['is_read'] is True
 
 
 def test_admin_can_crud_dashboard_tasks(
@@ -340,6 +455,75 @@ def test_authenticated_user_can_search_cadastre_via_carto_proxy(
     assert payload['feature_count'] == 1
     assert payload['geojson']['features'][0]['properties']['numero'] == '0012'
 
+
+
+def test_building_polygon_helpers_ignore_extra_coordinate_dimensions() -> None:
+    from src.domains.carto.service import _compute_feature_area_square_meters, _find_best_building_index
+
+    features = [
+        {
+            'type': 'Feature',
+            'properties': {'nature': 'Batiment'},
+            'geometry': {
+                'type': 'Polygon',
+                'coordinates': [
+                    [
+                        [1.3777, 43.5855, 0.0],
+                        [1.3779, 43.5855, 0.0],
+                        [1.3779, 43.5857, 0.0],
+                        [1.3777, 43.5857, 0.0],
+                        [1.3777, 43.5855, 0.0],
+                    ]
+                ],
+            },
+        }
+    ]
+
+    selected_index = _find_best_building_index(features, [1.377775, 43.585555])
+    estimated_area = _compute_feature_area_square_meters(features[0])
+
+    assert selected_index == 0
+    assert estimated_area is not None
+    assert estimated_area > 0
+
+
+def test_authenticated_user_can_reverse_geocode_address_via_carto_proxy(
+    client: TestClient,
+    seeded_data: dict[str, object],
+    monkeypatch,
+) -> None:
+    from src.domains.carto.schemas import AddressReverseGeocodeResponse, AddressSuggestion
+    from src.domains.carto.service import CartoService
+
+    def fake_reverse(*, lon: float, lat: float):
+        return AddressReverseGeocodeResponse(
+            item=AddressSuggestion(
+                label='2 Rue des Lapins 31000 Toulouse',
+                city='Toulouse',
+                postcode='31000',
+                citycode='31555',
+                context='31, Haute-Garonne, Occitanie',
+                longitude=lon,
+                latitude=lat,
+                kind='housenumber',
+                score=None,
+            ),
+            source_url='https://data.geopf.fr/geocodage/reverse?lon=' + str(lon) + '&lat=' + str(lat),
+        )
+
+    monkeypatch.setattr(CartoService, 'reverse_geocode_address', staticmethod(fake_reverse))
+
+    response = client.get(
+        '/api/v1/carto/address/reverse',
+        headers=auth_headers('viewer@cartotrac.com'),
+        params={'lon': 1.377775, 'lat': 43.585555},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload['item']['label'] == '2 Rue des Lapins 31000 Toulouse'
+    assert payload['item']['longitude'] == 1.377775
+    assert payload['item']['latitude'] == 43.585555
 
 
 def test_authenticated_user_can_fetch_address_autocomplete_suggestions(

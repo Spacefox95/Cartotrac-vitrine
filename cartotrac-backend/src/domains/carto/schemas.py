@@ -79,3 +79,8 @@ class AddressAutocompleteResponse(BaseModel):
     items: list[AddressSuggestion]
     total: int
     source_url: str
+
+
+class AddressReverseGeocodeResponse(BaseModel):
+    item: AddressSuggestion | None = None
+    source_url: str

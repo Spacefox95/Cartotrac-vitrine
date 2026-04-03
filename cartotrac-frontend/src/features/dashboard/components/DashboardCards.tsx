@@ -42,7 +42,6 @@ export const DashboardStatCard = ({
       elevation={0}
       sx={{
         p: 2.5,
-        borderRadius: 4,
         border: '1px solid rgba(15, 23, 42, 0.08)',
         background: colors.soft,
         minHeight: 168,

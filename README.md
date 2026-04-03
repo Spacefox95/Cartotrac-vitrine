@@ -25,3 +25,15 @@ Frontend :
 `cp .env.example .env`
 `npm install`
 `npm run dev`
+
+## CI/CD
+
+Le repo embarque maintenant :
+
+- une CI GitHub Actions pour le frontend et le backend
+- une CD GitHub Actions `staging` / `production`
+- un packaging de release avec manifeste
+- un déploiement SSH optionnel via environnements GitHub
+
+Référence :
+`docs/architecture/cicd.md`

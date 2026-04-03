@@ -1,0 +1,210 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_environment: ${{ steps.meta.outputs.deploy_environment }}
+      release_name: ${{ steps.meta.outputs.release_name }}
+    steps:
+      - name: Compute release metadata
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEPLOY_ENV="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            DEPLOY_ENV="production"
+          else
+            DEPLOY_ENV="staging"
+          fi
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          RELEASE_NAME="${DEPLOY_ENV}-${SHORT_SHA}"
+
+          echo "deploy_environment=${DEPLOY_ENV}" >> "$GITHUB_OUTPUT"
+          echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cartotrac-frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure Poetry
+        working-directory: cartotrac-backend
+        run: poetry config virtualenvs.in-project true
+
+      - name: Install frontend dependencies
+        working-directory: cartotrac-frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: cartotrac-frontend
+        run: npm run build
+
+      - name: Install backend dependencies
+        working-directory: cartotrac-backend
+        run: poetry install --no-interaction --no-root
+
+      - name: Validate backend
+        working-directory: cartotrac-backend
+        run: |
+          poetry run ruff check src
+          poetry run python -m compileall src alembic
+          poetry run pytest src/tests/test_rbac_api.py -q
+
+      - name: Package frontend artifact
+        run: tar -czf frontend-dist.tar.gz -C cartotrac-frontend dist
+
+      - name: Package backend artifact
+        run: tar -czf backend-release.tar.gz -C cartotrac-backend alembic src pyproject.toml poetry.lock alembic.ini .env.example
+
+      - name: Write release manifest
+        run: |
+          cat > release.json <<EOF
+          {
+            "environment": "${{ needs.prepare.outputs.deploy_environment }}",
+            "release": "${{ needs.prepare.outputs.release_name }}",
+            "sha": "${{ github.sha }}",
+            "ref": "${{ github.ref_name }}",
+            "run_id": "${{ github.run_id }}"
+          }
+          EOF
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ needs.prepare.outputs.release_name }}
+          path: frontend-dist.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-release-${{ needs.prepare.outputs.release_name }}
+          path: backend-release.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload release manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest-${{ needs.prepare.outputs.release_name }}
+          path: release.json
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - build
+    environment:
+      name: ${{ needs.prepare.outputs.deploy_environment }}
+      url: ${{ vars.APP_URL }}
+    if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_PATH != '' && secrets.DEPLOY_SSH_KEY != '' }}
+    env:
+      DEPLOY_ENVIRONMENT: ${{ needs.prepare.outputs.deploy_environment }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_POST_COMMAND: ${{ secrets.DEPLOY_POST_COMMAND }}
+      RELEASE_NAME: ${{ needs.prepare.outputs.release_name }}
+    steps:
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist-${{ needs.prepare.outputs.release_name }}
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-release-${{ needs.prepare.outputs.release_name }}
+
+      - name: Download release manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: release-manifest-${{ needs.prepare.outputs.release_name }}
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Upload release bundles
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH/releases/$RELEASE_NAME'"
+          scp -P "$DEPLOY_PORT" frontend-dist.tar.gz "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/releases/$RELEASE_NAME/frontend-dist.tar.gz"
+          scp -P "$DEPLOY_PORT" backend-release.tar.gz "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/releases/$RELEASE_NAME/backend-release.tar.gz"
+          scp -P "$DEPLOY_PORT" release.json "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/releases/$RELEASE_NAME/release.json"
+
+      - name: Extract and activate release
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
+            set -eu
+            mkdir -p '$DEPLOY_PATH/current'
+            rm -rf '$DEPLOY_PATH/releases/$RELEASE_NAME/frontend' '$DEPLOY_PATH/releases/$RELEASE_NAME/backend'
+            mkdir -p '$DEPLOY_PATH/releases/$RELEASE_NAME/frontend' '$DEPLOY_PATH/releases/$RELEASE_NAME/backend'
+            tar -xzf '$DEPLOY_PATH/releases/$RELEASE_NAME/frontend-dist.tar.gz' -C '$DEPLOY_PATH/releases/$RELEASE_NAME/frontend'
+            tar -xzf '$DEPLOY_PATH/releases/$RELEASE_NAME/backend-release.tar.gz' -C '$DEPLOY_PATH/releases/$RELEASE_NAME/backend'
+            ln -sfn '$DEPLOY_PATH/releases/$RELEASE_NAME/frontend/dist' '$DEPLOY_PATH/current/frontend'
+            ln -sfn '$DEPLOY_PATH/releases/$RELEASE_NAME/backend' '$DEPLOY_PATH/current/backend'
+            if [ -n \"${DEPLOY_POST_COMMAND}\" ]; then
+              sh -lc \"${DEPLOY_POST_COMMAND}\"
+            fi
+          "
+
+      - name: Deployment summary
+        run: |
+          {
+            echo '## Deployment'
+            echo
+            echo "- Environment: ${DEPLOY_ENVIRONMENT}"
+            echo "- Release: ${RELEASE_NAME}"
+            echo "- Host: ${DEPLOY_HOST}"
+            echo "- Path: ${DEPLOY_PATH}"
+          } >> "$GITHUB_STEP_SUMMARY"

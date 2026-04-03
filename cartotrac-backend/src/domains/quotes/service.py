@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.domains.clients.models import Client
 from src.domains.quotes.models import Quote
+from src.domains.quotes.pdf_renderer import QuotePdfDocument, render_quote_pdf
 from src.domains.quotes.schemas import (
     QuoteCreate,
     QuoteListResponse,
@@ -115,3 +116,16 @@ class QuoteService:
 
         db.delete(quote)
         db.commit()
+
+    @staticmethod
+    def generate_quote_pdf(db: Session, quote_id: int) -> QuotePdfDocument:
+        quote = db.get(Quote, quote_id)
+
+        if quote is None:
+            raise ValueError('Quote not found')
+
+        client = db.get(Client, quote.client_id)
+        if client is None:
+            raise ValueError('Client not found')
+
+        return render_quote_pdf(quote, client)

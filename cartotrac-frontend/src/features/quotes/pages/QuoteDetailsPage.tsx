@@ -8,7 +8,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { fetchClientsRequest } from 'features/clients/api/clientsApi';
 import type { Client } from 'features/clients/types/client.types';
@@ -21,6 +21,7 @@ import {
 import {
   createQuoteRequest,
   deleteQuoteRequest,
+  downloadQuotePdfRequest,
   fetchQuoteRequest,
   updateQuoteRequest,
 } from '../api/quotesApi';
@@ -51,15 +52,18 @@ const formatCurrency = (value: string) => {
 const QuoteDetailsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const params = useParams<{ quoteId?: string }>();
   const quoteId = Number(params.quoteId);
   const isCreate = location.pathname.endsWith('/new');
   const isEdit = location.pathname.endsWith('/edit');
+  const shouldApplyCadastreDraft = searchParams.get('cadastre') === '1';
 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cadastreDraft, setCadastreDraft] = useState<CadastreQuoteDraft | null>(null);
 
@@ -84,7 +88,7 @@ const QuoteDetailsPage = () => {
 
         setClients(clientsResponse.items);
         setQuote(quoteResponse);
-        setCadastreDraft(isCreate ? loadCadastreQuoteDraft() : null);
+        setCadastreDraft(isCreate || shouldApplyCadastreDraft ? loadCadastreQuoteDraft() : null);
       } catch {
         if (isMounted) {
           setErrorMessage('Impossible de charger ce devis.');
@@ -101,7 +105,7 @@ const QuoteDetailsPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [isCreate, quoteId]);
+  }, [isCreate, quoteId, shouldApplyCadastreDraft]);
 
   const initialValues = useMemo<QuotePayload>(() => {
     if (!quote) {
@@ -118,7 +122,7 @@ const QuoteDetailsPage = () => {
       status: quote.status,
       total_ht: quote.total_ht,
       total_ttc: quote.total_ttc,
-      cadastre_context: quote.cadastre_context ?? null,
+      cadastre_context: cadastreDraft ?? quote.cadastre_context ?? null,
     };
   }, [cadastreDraft, clients, quote]);
 
@@ -136,7 +140,7 @@ const QuoteDetailsPage = () => {
         ? await createQuoteRequest(values)
         : await updateQuoteRequest(quoteId, values);
 
-      if (isCreate) {
+      if (isCreate || cadastreDraft) {
         clearCadastreQuoteDraft();
         setCadastreDraft(null);
       }
@@ -171,6 +175,31 @@ const QuoteDetailsPage = () => {
       setErrorMessage('Suppression impossible pour le moment.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!quote) {
+      return;
+    }
+
+    try {
+      setIsDownloadingPdf(true);
+      setErrorMessage(null);
+      const { blob, filename } = await downloadQuotePdfRequest(quote.id);
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+
+      link.href = objectUrl;
+      link.download = filename;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch {
+      setErrorMessage('Telechargement du PDF impossible pour le moment.');
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -248,6 +277,56 @@ const QuoteDetailsPage = () => {
                       }}
                     >
                       Retirer ce contexte
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </Stack>
+          </Paper>
+        ) : null}
+        {isEdit && cadastreDraft ? (
+          <Paper sx={{ p: 3 }}>
+            <Stack spacing={2.5}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2.5} alignItems={{ xs: 'stretch', md: 'flex-start' }}>
+                {cadastreDraft.preview_svg ? (
+                  <Box
+                    component="img"
+                    src={cadastreDraft.preview_svg}
+                    alt="Apercu du trace cadastre"
+                    sx={{
+                      width: { xs: '100%', md: 260 },
+                      maxWidth: 320,
+                      borderRadius: 3,
+                      border: '1px solid rgba(15, 23, 42, 0.08)',
+                      backgroundColor: '#f8fafc',
+                    }}
+                  />
+                ) : null}
+                <Stack spacing={1.25} sx={{ flex: 1 }}>
+                  <Typography variant="h4">Nouveau trace cadastre pret a etre applique</Typography>
+                  {cadastreDraft.trace_area_sqm !== null ? (
+                    <Alert severity="success">
+                      Surface retenue pour la mise a jour: {new Intl.NumberFormat('fr-FR', {
+                        maximumFractionDigits: cadastreDraft.trace_area_sqm >= 1000 ? 0 : 1,
+                      }).format(cadastreDraft.trace_area_sqm)} m2
+                    </Alert>
+                  ) : null}
+                  <Typography color="text.secondary">
+                    L&apos;enregistrement du devis remplacera le contexte cadastre actuel.
+                  </Typography>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Button variant="outlined" onClick={() => navigate(`/app/cadastre?quoteId=${quoteId}`)}>
+                      Revenir au cadastre
+                    </Button>
+                    <Button
+                      variant="text"
+                      color="inherit"
+                      onClick={() => {
+                        clearCadastreQuoteDraft();
+                        setCadastreDraft(null);
+                      }}
+                    >
+                      Conserver le contexte actuel
                     </Button>
                   </Stack>
                 </Stack>
@@ -354,6 +433,16 @@ const QuoteDetailsPage = () => {
       <Stack direction="row" spacing={2}>
         <Button variant="contained" onClick={() => navigate(`/app/quotes/${quote.id}/edit`)}>
           Modifier
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={handleDownloadPdf}
+          disabled={isDownloadingPdf}
+        >
+          {isDownloadingPdf ? 'Generation du PDF...' : 'Telecharger le PDF'}
+        </Button>
+        <Button variant="outlined" onClick={() => navigate(`/app/cadastre?quoteId=${quote.id}`)}>
+          Mettre a jour le cadastre
         </Button>
         <Button
           variant="outlined"

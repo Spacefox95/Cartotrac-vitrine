@@ -41,6 +41,11 @@ export type AddressAutocompleteResponse = {
   source_url: string;
 };
 
+export type AddressReverseGeocodeResponse = {
+  item: AddressSuggestion | null;
+  source_url: string;
+};
+
 export type CadastreSearchParams = {
   code_insee?: string;
   code_dep?: string;
@@ -60,11 +65,3 @@ export type CadastreSearchResponse = {
   geojson: CadastreFeatureCollection;
 };
 
-
-export type BuildingFootprintEstimateResponse = {
-  source_url: string;
-  feature_count: number;
-  selected_index: number | null;
-  estimated_area_sqm: number | null;
-  geojson: CadastreFeatureCollection;
-};

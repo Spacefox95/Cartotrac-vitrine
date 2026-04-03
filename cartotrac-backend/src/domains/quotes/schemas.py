@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Any
 
 from src.common.schemas.base import BaseSchema
 

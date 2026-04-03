@@ -33,16 +33,43 @@ export type DashboardEvent = {
   starts_at: string;
   ends_at: string | null;
   category: string;
+  assigned_user_id: number | null;
+  assigned_user_name: string | null;
+  location: string | null;
+  meeting_url: string | null;
 };
 
 export type DashboardNotification = {
   id: number;
   sender: string;
+  sender_user_id: number | null;
+  sender_email: string | null;
+  recipient_user_id: number | null;
+  recipient: string | null;
+  recipient_email: string | null;
   title: string;
   message: string;
   category: string;
   is_read: boolean;
   created_at: string;
+};
+
+export type DashboardMessageCreatePayload = {
+  recipient_user_id: number;
+  title: string;
+  message: string;
+};
+
+export type DashboardMessageContact = {
+  id: number;
+  email: string;
+  full_name: string | null;
+  role: string;
+};
+
+export type DashboardMessageContactsResponse = {
+  items: DashboardMessageContact[];
+  total: number;
 };
 
 export type DashboardRecentQuote = {

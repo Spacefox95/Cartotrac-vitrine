@@ -10,7 +10,6 @@ export type CadastreQuoteDraft = {
   parcel_subtitle: string | null;
   parcel_area_label: string | null;
   measured_area_sqm: number | null;
-  estimated_building_area_sqm: number | null;
   trace_area_sqm: number | null;
   trace_points: Position[];
   preview_svg: string | null;
@@ -43,7 +42,6 @@ export function clearCadastreQuoteDraft() {
 
 export function createCadastrePreviewSvg(options: {
   parcelPolygons: Position[][];
-  buildingPolygons: Position[][];
   tracePoints: Position[];
   addressPoint: Position | null;
 }) {
@@ -53,7 +51,6 @@ export function createCadastrePreviewSvg(options: {
   const tracePolygons = options.tracePoints.length >= 3 ? [options.tracePoints] : [];
   const allPoints = [
     ...options.parcelPolygons.flat(),
-    ...options.buildingPolygons.flat(),
     ...options.tracePoints,
     ...(options.addressPoint ? [options.addressPoint] : []),
   ];
@@ -113,10 +110,6 @@ export function createCadastrePreviewSvg(options: {
     .map((polygon) => `<path d="${polygonToPath(polygon)}" fill="rgba(21,101,192,0.14)" stroke="#1565c0" stroke-width="2" />`)
     .join('');
 
-  const buildingPaths = options.buildingPolygons
-    .map((polygon) => `<path d="${polygonToPath(polygon)}" fill="rgba(255,179,0,0.08)" stroke="#ef6c00" stroke-width="2" stroke-dasharray="8 6" />`)
-    .join('');
-
   const tracePath =
     tracePolygons.length > 0
       ? `<path d="${polygonToPath(tracePolygons[0])}" fill="rgba(239,108,0,0.18)" stroke="#ef6c00" stroke-width="3" />`
@@ -138,6 +131,6 @@ export function createCadastrePreviewSvg(options: {
       })()
     : '';
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><rect width="100%" height="100%" rx="18" fill="#f8fafc" />${parcelPaths}${buildingPaths}${tracePath}${traceMarkers}${addressMarker}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"><rect width="100%" height="100%" rx="18" fill="#f8fafc" />${parcelPaths}${tracePath}${traceMarkers}${addressMarker}</svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }

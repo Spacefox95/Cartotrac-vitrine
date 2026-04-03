@@ -85,5 +85,19 @@ function normalizeEventPayload(payload: Partial<AdminDashboardEventPayload>) {
     delete nextPayload.ends_at;
   }
 
+  if (nextPayload.location !== undefined) {
+    nextPayload.location = nextPayload.location.trim();
+    if (nextPayload.location === '') {
+      delete nextPayload.location;
+    }
+  }
+
+  if (nextPayload.meeting_url !== undefined) {
+    nextPayload.meeting_url = nextPayload.meeting_url.trim();
+    if (nextPayload.meeting_url === '') {
+      delete nextPayload.meeting_url;
+    }
+  }
+
   return nextPayload;
 }

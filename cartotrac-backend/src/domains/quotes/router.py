@@ -50,6 +50,32 @@ def get_quote(
         ) from exc
 
 
+@router.get('/{quote_id}/pdf')
+def download_quote_pdf(
+    quote_id: int,
+    current_user: CurrentUserResponse = Depends(require_permission('quotes:read')),
+    db: Session = Depends(get_database),
+) -> Response:
+    try:
+        pdf_document = QuoteService.generate_quote_pdf(db, quote_id)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if detail in {'Quote not found', 'Client not found'}
+            else status.HTTP_400_BAD_REQUEST
+        )
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    return Response(
+        content=pdf_document.content,
+        media_type='application/pdf',
+        headers={
+            'Content-Disposition': f'attachment; filename="{pdf_document.filename}"',
+        },
+    )
+
+
 @router.post('', response_model=QuoteRead, status_code=status.HTTP_201_CREATED)
 def create_quote(
     payload: QuoteCreate,

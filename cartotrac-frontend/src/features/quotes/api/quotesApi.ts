@@ -35,6 +35,20 @@ export async function deleteQuoteRequest(quoteId: number) {
   await http.delete(`/quotes/${quoteId}`);
 }
 
+export async function downloadQuotePdfRequest(quoteId: number) {
+  const response = await http.get<Blob>(`/quotes/${quoteId}/pdf`, {
+    responseType: 'blob',
+  });
+
+  const disposition = response.headers['content-disposition'];
+  const filenameMatch = disposition?.match(/filename="?([^"]+)"?/i);
+
+  return {
+    blob: response.data,
+    filename: filenameMatch?.[1] ?? `devis-${quoteId}.pdf`,
+  };
+}
+
 function normalizePayload(payload: QuotePayload) {
   return {
     reference: payload.reference.trim(),

@@ -15,6 +15,10 @@ export type AdminDashboardEvent = {
   starts_at: string;
   ends_at: string | null;
   category: string;
+  assigned_user_id: number | null;
+  assigned_user_name: string | null;
+  location: string | null;
+  meeting_url: string | null;
 };
 
 export type AdminDashboardNotification = {
@@ -42,6 +46,9 @@ export type AdminDashboardEventPayload = {
   starts_at: string;
   ends_at: string;
   category: string;
+  assigned_user_id: number | null;
+  location: string;
+  meeting_url: string;
 };
 
 export type AdminDashboardNotificationPayload = {

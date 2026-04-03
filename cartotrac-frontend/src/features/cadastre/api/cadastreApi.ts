@@ -2,7 +2,7 @@ import { http } from 'shared/api/http';
 
 import type {
   AddressAutocompleteResponse,
-  BuildingFootprintEstimateResponse,
+  AddressReverseGeocodeResponse,
   CadastreSearchParams,
   CadastreSearchResponse,
 } from '../types/cadastre.types';
@@ -18,6 +18,14 @@ export async function fetchAddressSuggestionsRequest(query: string, limit = 5) {
   return response.data;
 }
 
+export async function reverseGeocodeAddressRequest(lon: number, lat: number) {
+  const response = await http.get<AddressReverseGeocodeResponse>('/carto/address/reverse', {
+    params: { lon, lat },
+  });
+
+  return response.data;
+}
+
 export async function searchCadastreRequest(params: CadastreSearchParams) {
   const response = await http.get<CadastreSearchResponse>('/carto/cadastre/search', {
     params: normalizeParams(params),
@@ -26,18 +34,6 @@ export async function searchCadastreRequest(params: CadastreSearchParams) {
   return response.data;
 }
 
-export async function fetchBuildingFootprintEstimateRequest(
-  lon: number,
-  lat: number,
-  radius_m = 30,
-  limit = 30,
-) {
-  const response = await http.get<BuildingFootprintEstimateResponse>('/carto/buildings/estimate', {
-    params: { lon, lat, radius_m, limit },
-  });
-
-  return response.data;
-}
 
 function normalizeParams(params: CadastreSearchParams) {
   return Object.fromEntries(

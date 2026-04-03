@@ -21,6 +21,11 @@ class Settings(BaseSettings):
 
     secret_key: str = 'change-me'
     access_token_expire_minutes: int = 60
+    quote_validity_days: int = 30
+    quote_pdf_company_name: str = 'Cartotrac'
+    quote_pdf_company_address: str = 'Cartotrac, France'
+    quote_pdf_company_email: str = 'contact@cartotrac.fr'
+    quote_pdf_company_phone: str = '+33 1 00 00 00 00'
 
     model_config = SettingsConfigDict(
         env_file='.env',

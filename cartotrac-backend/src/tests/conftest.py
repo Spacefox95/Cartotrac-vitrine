@@ -128,9 +128,14 @@ def seeded_data(db_session: Session) -> dict[str, object]:
         starts_at=now + timedelta(hours=1),
         ends_at=now + timedelta(hours=2),
         category='meeting',
+        assigned_user_id=manager.id,
+        location='Bureau principal',
+        meeting_url='https://zoom.us/j/123456789',
     )
     notification = DashboardNotification(
-        sender='Sonia - ADV',
+        sender='Manager User',
+        sender_user_id=manager.id,
+        recipient_user_id=admin.id,
         title='Client a rappeler',
         message='Le client ACME attend un retour dans la journee.',
         category='message',

@@ -5,6 +5,7 @@ from src.api.dependencies.auth import get_current_user
 from src.domains.auth.schemas import CurrentUserResponse
 from src.domains.carto.schemas import (
     AddressAutocompleteResponse,
+    AddressReverseGeocodeResponse,
     BuildingFootprintEstimateParams,
     BuildingFootprintEstimateResponse,
     CadastreSearchParams,
@@ -23,6 +24,15 @@ def autocomplete_address(
 ) -> AddressAutocompleteResponse:
     return CartoService.autocomplete_address(q.strip(), limit=limit)
 
+
+
+@router.get('/address/reverse', response_model=AddressReverseGeocodeResponse)
+def reverse_geocode_address(
+    current_user: CurrentUserResponse = Depends(get_current_user),
+    lon: float = Query(ge=-180, le=180),
+    lat: float = Query(ge=-90, le=90),
+) -> AddressReverseGeocodeResponse:
+    return CartoService.reverse_geocode_address(lon=lon, lat=lat)
 
 
 

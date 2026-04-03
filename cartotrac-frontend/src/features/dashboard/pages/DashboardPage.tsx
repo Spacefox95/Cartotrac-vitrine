@@ -19,26 +19,39 @@ import {
   ButtonBase,
   Chip,
   CircularProgress,
-  Divider,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Grid,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
+  Link,
+  MenuItem,
   Paper,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppSelector } from 'app/store/hooks';
+import { createDashboardEventRequest } from 'features/admin/api/dashboardAdminApi';
+import { fetchUsersRequest } from 'features/admin/api/usersApi';
+import type { AdminDashboardEventPayload } from 'features/admin/types/dashboardAdmin.types';
+import type { AdminUser } from 'features/admin/types/user.types';
 import { hasPermission } from 'shared/auth/permissions';
 
-import { getDashboardRequest } from '../api/dashboard.api';
+import {
+  fetchDashboardMessageContactsRequest,
+  fetchDashboardMessagesRequest,
+  getDashboardRequest,
+  markDashboardMessageReadRequest,
+  sendDashboardMessageRequest,
+} from '../api/dashboard.api';
 import { DashboardStatCard } from '../components/DashboardCards';
 import type {
   DashboardEvent,
+  DashboardMessageContact,
+  DashboardMessageCreatePayload,
   DashboardNotification,
   DashboardResponse,
   DashboardTask,
@@ -72,6 +85,26 @@ const priorityColorMap: Record<string, string> = {
   low: 'rgba(0, 137, 123, 0.08)',
 };
 
+const emptyTasks: DashboardTask[] = [];
+const emptyEvents: DashboardEvent[] = [];
+const emptyNotifications: DashboardNotification[] = [];
+const emptyRecentQuotes: DashboardResponse['recent_quotes'] = [];
+const emptyEventDraft: AdminDashboardEventPayload = {
+  title: '',
+  description: '',
+  starts_at: '',
+  ends_at: '',
+  category: 'meeting',
+  assigned_user_id: null,
+  location: '',
+  meeting_url: '',
+};
+const emptyMessageDraft: DashboardMessageCreatePayload = {
+  recipient_user_id: 0,
+  title: '',
+  message: '',
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.auth.currentUser);
@@ -83,6 +116,20 @@ const DashboardPage = () => {
   const canWriteQuotes = hasPermission(currentUser?.permissions, 'quotes:write');
   const canWriteClients = hasPermission(currentUser?.permissions, 'clients:write');
   const canManageDashboard = hasPermission(currentUser?.permissions, 'users:manage');
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
+  const [isEventSubmitting, setIsEventSubmitting] = useState(false);
+  const [eventSubmitError, setEventSubmitError] = useState<string | null>(null);
+  const [eventDraft, setEventDraft] = useState<AdminDashboardEventPayload>(emptyEventDraft);
+  const [messageContacts, setMessageContacts] = useState<DashboardMessageContact[]>([]);
+  const [messages, setMessages] = useState<DashboardNotification[]>([]);
+  const [selectedConversationUserId, setSelectedConversationUserId] = useState<number | null>(null);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [isMessageSubmitting, setIsMessageSubmitting] = useState(false);
+  const [messageSubmitError, setMessageSubmitError] = useState<string | null>(null);
+  const [messageDraft, setMessageDraft] = useState<DashboardMessageCreatePayload>(emptyMessageDraft);
+  const fallbackDate = new Date();
 
   const planningRoute = canManageDashboard ? '/app/admin/dashboard?tab=events' : '/app/dashboard';
   const alertsRoute = canManageDashboard ? '/app/admin/dashboard?tab=notifications' : '/app/dashboard';
@@ -156,6 +203,65 @@ const DashboardPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (canManageDashboard === false) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadUsers = async () => {
+      try {
+        const response = await fetchUsersRequest();
+        if (isMounted) {
+          setUsers(response.items);
+        }
+      } catch {
+        if (isMounted) {
+          setUsers([]);
+        }
+      }
+    };
+
+    void loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canManageDashboard]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMessaging = async () => {
+      try {
+        const [contactsResponse, messagesResponse] = await Promise.all([
+          fetchDashboardMessageContactsRequest(),
+          fetchDashboardMessagesRequest(),
+        ]);
+        if (isMounted) {
+          setMessageContacts(contactsResponse.items);
+          setMessages(messagesResponse);
+          setMessageDraft((current) => ({
+            ...current,
+            recipient_user_id: current.recipient_user_id || contactsResponse.items[0]?.id || 0,
+          }));
+        }
+      } catch {
+        if (isMounted) {
+          setMessageContacts([]);
+          setMessages([]);
+        }
+      }
+    };
+
+    void loadMessaging();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const calendarDays = useMemo(() => {
     if (dashboard === null) {
       return [] as Array<number | null>;
@@ -172,6 +278,252 @@ const DashboardPage = () => {
     ];
   }, [dashboard]);
 
+  const summary = dashboard?.summary ?? {
+    clients_total: 0,
+    quotes_total: 0,
+    draft_quotes_total: 0,
+    sent_quotes_total: 0,
+    pipeline_total_ttc: 0,
+    open_tasks_total: 0,
+    unread_notifications_total: 0,
+    today_events_total: 0,
+  };
+  const calendar = dashboard?.calendar ?? {
+    year: fallbackDate.getFullYear(),
+    month: fallbackDate.getMonth() + 1,
+    today: fallbackDate.getDate(),
+    highlighted_days: [],
+  };
+  const tasks = dashboard?.tasks ?? emptyTasks;
+  const events = dashboard?.events ?? emptyEvents;
+  const notifications = dashboard?.notifications ?? emptyNotifications;
+  const recentQuotes = dashboard?.recent_quotes ?? emptyRecentQuotes;
+  const monthLabel = monthNames[calendar.month - 1] + ' ' + String(calendar.year);
+
+  const eventsByDay = useMemo(() => {
+    const grouped = new Map<number, DashboardEvent[]>();
+
+    for (const event of events) {
+      const eventDate = new Date(event.starts_at);
+      const isSameMonth =
+        eventDate.getFullYear() === calendar.year && eventDate.getMonth() === calendar.month - 1;
+
+      if (isSameMonth === false) {
+        continue;
+      }
+
+      const day = eventDate.getDate();
+      const currentEvents = grouped.get(day) ?? [];
+      currentEvents.push(event);
+      grouped.set(day, currentEvents);
+    }
+
+    return grouped;
+  }, [calendar.month, calendar.year, events]);
+
+  useEffect(() => {
+    const preferredDay =
+      (selectedCalendarDay !== null && eventsByDay.has(selectedCalendarDay)) || selectedCalendarDay === calendar.today
+        ? selectedCalendarDay
+        : null;
+
+    if (preferredDay !== null) {
+      return;
+    }
+
+    const nextDay = eventsByDay.has(calendar.today)
+      ? calendar.today
+      : (Array.from(eventsByDay.keys()).sort((left, right) => left - right)[0] ?? calendar.today);
+
+    setSelectedCalendarDay(nextDay);
+  }, [calendar.today, eventsByDay, selectedCalendarDay]);
+
+  const selectedDayEvents = useMemo(() => {
+    if (selectedCalendarDay === null) {
+      return [];
+    }
+
+    return eventsByDay.get(selectedCalendarDay) ?? [];
+  }, [eventsByDay, selectedCalendarDay]);
+
+  const selectedDayLabel =
+    selectedCalendarDay === null
+      ? monthLabel
+      : new Intl.DateTimeFormat('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        }).format(new Date(calendar.year, calendar.month - 1, selectedCalendarDay));
+
+  const conversationSummaries = useMemo(() => {
+    return messageContacts
+      .map((contact) => {
+        const conversationMessages = messages.filter((message) => {
+          const isOutgoing =
+            message.sender_email === currentUser?.email && message.recipient_user_id === contact.id;
+          const isIncoming =
+            message.recipient_email === currentUser?.email && message.sender_user_id === contact.id;
+
+          return isOutgoing || isIncoming;
+        });
+
+        const latestMessage = [...conversationMessages].sort(
+          (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+        )[0] ?? null;
+
+        const unreadCount = conversationMessages.filter(
+          (message) => message.is_read === false && message.recipient_email === currentUser?.email,
+        ).length;
+
+        return {
+          contact,
+          latestMessage,
+          unreadCount,
+        };
+      })
+      .sort((left, right) => {
+        if (left.unreadCount !== right.unreadCount) {
+          return right.unreadCount - left.unreadCount;
+        }
+
+        const leftTime = left.latestMessage ? new Date(left.latestMessage.created_at).getTime() : 0;
+        const rightTime = right.latestMessage ? new Date(right.latestMessage.created_at).getTime() : 0;
+
+        return rightTime - leftTime;
+      });
+  }, [currentUser?.email, messageContacts, messages]);
+
+  useEffect(() => {
+    const fallbackContactId = conversationSummaries[0]?.contact.id ?? messageContacts[0]?.id ?? null;
+
+    if (selectedConversationUserId === null || conversationSummaries.every((item) => item.contact.id !== selectedConversationUserId)) {
+      setSelectedConversationUserId(fallbackContactId);
+    }
+  }, [conversationSummaries, messageContacts, selectedConversationUserId]);
+
+  const selectedConversation = useMemo(
+    () =>
+      conversationSummaries.find((item) => item.contact.id === selectedConversationUserId) ?? null,
+    [conversationSummaries, selectedConversationUserId],
+  );
+
+  const conversationMessages = useMemo(() => {
+    if (selectedConversationUserId === null) {
+      return [];
+    }
+
+    return [...messages]
+      .filter((message) => {
+        const isOutgoing =
+          message.sender_email === currentUser?.email && message.recipient_user_id === selectedConversationUserId;
+        const isIncoming =
+          message.recipient_email === currentUser?.email && message.sender_user_id === selectedConversationUserId;
+
+        return isOutgoing || isIncoming;
+      })
+      .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime());
+  }, [currentUser?.email, messages, selectedConversationUserId]);
+
+  const loadDashboard = async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage(null);
+      const response = await getDashboardRequest();
+      setDashboard(response);
+    } catch {
+      setErrorMessage('Impossible de charger le tableau de bord pour le moment.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadMessages = async () => {
+    try {
+      const response = await fetchDashboardMessagesRequest();
+      setMessages(response);
+    } catch {
+      setErrorMessage('Impossible de charger la messagerie pour le moment.');
+    }
+  };
+
+  const openEventDialogForDay = (day: number) => {
+    const startDate = new Date(calendar.year, calendar.month - 1, day, 9, 0, 0, 0);
+    const endDate = new Date(startDate);
+    endDate.setMinutes(endDate.getMinutes() + 45);
+
+    setEventSubmitError(null);
+    setEventDraft({
+      ...emptyEventDraft,
+      starts_at: toDateTimeLocalInput(startDate),
+      ends_at: toDateTimeLocalInput(endDate),
+    });
+    setIsEventDialogOpen(true);
+  };
+
+  const handleCalendarDayClick = (day: number | null) => {
+    if (day === null) {
+      return;
+    }
+
+    setSelectedCalendarDay(day);
+
+    if (canManageDashboard === false) {
+      return;
+    }
+
+    openEventDialogForDay(day);
+  };
+
+  const handleCreateEvent = async () => {
+    try {
+      setIsEventSubmitting(true);
+      setEventSubmitError(null);
+      await createDashboardEventRequest({
+        ...eventDraft,
+        starts_at: new Date(eventDraft.starts_at).toISOString(),
+        ends_at: eventDraft.ends_at ? new Date(eventDraft.ends_at).toISOString() : '',
+      });
+      setIsEventDialogOpen(false);
+      await loadDashboard();
+    } catch {
+      setEventSubmitError("Impossible d'enregistrer cet evenement pour le moment.");
+    } finally {
+      setIsEventSubmitting(false);
+    }
+  };
+
+  const openMessageDialog = (recipientUserId?: number) => {
+    setMessageSubmitError(null);
+    setMessageDraft({
+      ...emptyMessageDraft,
+      recipient_user_id: recipientUserId ?? selectedConversationUserId ?? messageContacts[0]?.id ?? 0,
+    });
+    setIsMessageDialogOpen(true);
+  };
+
+  const handleSendMessage = async () => {
+    try {
+      setIsMessageSubmitting(true);
+      setMessageSubmitError(null);
+      await sendDashboardMessageRequest(messageDraft);
+      setIsMessageDialogOpen(false);
+      await Promise.all([loadDashboard(), loadMessages()]);
+    } catch {
+      setMessageSubmitError("Impossible d'envoyer ce message pour le moment.");
+    } finally {
+      setIsMessageSubmitting(false);
+    }
+  };
+
+  const handleMarkMessageRead = async (messageId: number) => {
+    try {
+      await markDashboardMessageReadRequest(messageId);
+      await Promise.all([loadDashboard(), loadMessages()]);
+    } catch {
+      setErrorMessage('Impossible de mettre ce message a jour.');
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}>
@@ -184,21 +536,13 @@ const DashboardPage = () => {
     return <Alert severity="error">{errorMessage ?? 'Le tableau de bord est indisponible.'}</Alert>;
   }
 
-  const summary = dashboard.summary;
-  const calendar = dashboard.calendar;
-  const tasks = dashboard.tasks;
-  const events = dashboard.events;
-  const notifications = dashboard.notifications;
-  const recentQuotes = dashboard.recent_quotes;
-  const monthLabel = monthNames[calendar.month - 1] + ' ' + String(calendar.year);
-
   return (
-    <Stack spacing={3.5}>
+    <>
+      <Stack spacing={3.5}>
       <Paper
         elevation={0}
         sx={{
           overflow: 'hidden',
-          borderRadius: 6,
           border: '1px solid rgba(15, 23, 42, 0.08)',
           background:
             'radial-gradient(circle at top left, rgba(21, 101, 192, 0.22), transparent 34%), linear-gradient(135deg, #0d1b2a 0%, #13345b 45%, #1f6fb2 100%)',
@@ -338,7 +682,6 @@ const DashboardPage = () => {
             elevation={0}
             sx={{
               p: 3,
-              borderRadius: 5,
               border: '1px solid rgba(15, 23, 42, 0.08)',
               background: 'linear-gradient(180deg, #ffffff 0%, #f9fbff 100%)',
               height: '100%',
@@ -364,32 +707,75 @@ const DashboardPage = () => {
                 {calendarDays.map((day, index) => {
                   const isToday = day === calendar.today;
                   const hasEvent = day !== null && calendar.highlighted_days.includes(day);
+                  const isSelected = day !== null && day === selectedCalendarDay;
 
                   return (
                     <Grid key={day === null ? 'empty-' + String(index) : day} size={1}>
-                      <Box
+                      <ButtonBase
+                        disabled={day === null}
+                        onClick={() => handleCalendarDayClick(day)}
                         sx={{
+                          width: '100%',
                           aspectRatio: '1 / 1',
                           borderRadius: 3,
-                          display: 'grid',
-                          placeItems: 'center',
-                          border: day ? '1px solid rgba(15, 23, 42, 0.08)' : '1px dashed transparent',
-                          bgcolor: isToday ? '#1565c0' : hasEvent ? 'rgba(21, 101, 192, 0.08)' : 'transparent',
-                          color: isToday ? '#fff' : 'text.primary',
-                          fontWeight: isToday ? 800 : 600,
+                          overflow: 'hidden',
                         }}
                       >
-                        {day ?? ''}
-                      </Box>
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'grid',
+                            placeItems: 'center',
+                            border: day ? '1px solid rgba(15, 23, 42, 0.08)' : '1px dashed transparent',
+                            bgcolor: isToday
+                              ? '#1565c0'
+                              : isSelected
+                                ? 'rgba(21, 101, 192, 0.14)'
+                                : hasEvent
+                                  ? 'rgba(21, 101, 192, 0.08)'
+                                  : 'transparent',
+                            color: isToday ? '#fff' : 'text.primary',
+                            fontWeight: isToday || isSelected ? 800 : 600,
+                            boxShadow: isSelected ? 'inset 0 0 0 2px rgba(21, 101, 192, 0.35)' : 'none',
+                            transition: 'all 160ms ease',
+                          }}
+                        >
+                          {day ?? ''}
+                        </Box>
+                      </ButtonBase>
                     </Grid>
                   );
                 })}
               </Grid>
 
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1.5}>
+                <Box>
+                  <Typography variant="h6">Programme du {selectedDayLabel}</Typography>
+                  <Typography color="text.secondary">
+                    {selectedDayEvents.length} rendez-vous planifie{selectedDayEvents.length > 1 ? 's' : ''}
+                  </Typography>
+                </Box>
+              </Stack>
+
               <Stack spacing={1.25}>
-                {events.map((event) => (
-                  <EventRow key={event.id} event={event} />
-                ))}
+                {selectedDayEvents.length > 0 ? (
+                  selectedDayEvents.map((event) => <EventRow key={event.id} event={event} />)
+                ) : (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      border: '1px dashed rgba(15, 23, 42, 0.16)',
+                      bgcolor: 'rgba(247, 249, 252, 0.72)',
+                    }}
+                  >
+                    <Typography fontWeight={700}>Aucun evenement planifie</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Selectionnez un autre jour ou cliquez sur une date pour programmer un rendez-vous.
+                    </Typography>
+                  </Paper>
+                )}
               </Stack>
             </Stack>
           </Paper>
@@ -400,7 +786,6 @@ const DashboardPage = () => {
             elevation={0}
             sx={{
               p: 3,
-              borderRadius: 5,
               border: '1px solid rgba(15, 23, 42, 0.08)',
               height: '100%',
             }}
@@ -429,7 +814,6 @@ const DashboardPage = () => {
               elevation={0}
               sx={{
                 p: 3,
-                borderRadius: 5,
                 border: '1px solid rgba(15, 23, 42, 0.08)',
               }}
             >
@@ -437,36 +821,156 @@ const DashboardPage = () => {
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Box>
                     <Typography variant="h5">Messagerie</Typography>
-                    <Typography color="text.secondary">Flux notifications en direct</Typography>
+                    <Typography color="text.secondary">Conversations equipe et alertes utiles</Typography>
                   </Box>
-                  <Chip label={String(summary.unread_notifications_total) + ' non lues'} color="primary" variant="outlined" />
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip label={String(summary.unread_notifications_total) + ' non lus'} color="primary" variant="outlined" />
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => openMessageDialog()}
+                      disabled={messageContacts.length === 0}
+                    >
+                      Nouveau message
+                    </Button>
+                  </Stack>
                 </Stack>
 
-                <List disablePadding>
-                  {notifications.map((notification, index) => (
-                    <Box key={notification.id}>
-                      <ListItem disableGutters sx={{ py: 1.25, alignItems: 'flex-start' }}>
-                        <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: getNotificationColor(notification.category) }}>
-                            {notification.sender.charAt(0)}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={notification.sender}
-                          secondary={notification.title + ' · ' + notification.message}
-                          slotProps={{
-                            primary: { fontWeight: 700 },
-                            secondary: { sx: { color: 'text.secondary', mt: 0.25 } },
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary">
-                          {formatTimeAgo(notification.created_at)}
-                        </Typography>
-                      </ListItem>
-                      {index < notifications.length - 1 ? <Divider /> : null}
-                    </Box>
-                  ))}
-                </List>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 5 }}>
+                    <Stack spacing={1}>
+                      {conversationSummaries.map(({ contact, latestMessage, unreadCount }) => {
+                        const isSelected = contact.id === selectedConversationUserId;
+
+                        return (
+                          <ButtonBase
+                            key={contact.id}
+                            onClick={() => setSelectedConversationUserId(contact.id)}
+                            sx={{ width: '100%', textAlign: 'left' }}
+                          >
+                            <Box
+                              sx={{
+                                width: '100%',
+                                p: 1.5,
+                                borderRadius: 1,
+                                border: '1px solid rgba(15, 23, 42, 0.08)',
+                                bgcolor: isSelected ? 'rgba(21, 101, 192, 0.08)' : '#fff',
+                              }}
+                            >
+                              <Stack direction="row" spacing={1.25} alignItems="center">
+                                <Avatar sx={{ bgcolor: unreadCount > 0 ? '#1565c0' : 'rgba(15, 23, 42, 0.12)' }}>
+                                  {(contact.full_name ?? contact.email).charAt(0)}
+                                </Avatar>
+                                <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                                  <Stack direction="row" justifyContent="space-between" spacing={1}>
+                                    <Typography fontWeight={700} noWrap>
+                                      {contact.full_name ?? contact.email}
+                                    </Typography>
+                                    {unreadCount > 0 ? <Chip label={String(unreadCount)} size="small" color="primary" /> : null}
+                                  </Stack>
+                                  <Typography variant="body2" color="text.secondary" noWrap>
+                                    {latestMessage
+                                      ? latestMessage.title.trim() || latestMessage.message
+                                      : 'Aucune conversation'}
+                                  </Typography>
+                                </Box>
+                              </Stack>
+                            </Box>
+                          </ButtonBase>
+                        );
+                      })}
+                    </Stack>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 7 }}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 1.5,
+                        minHeight: 280,
+                        border: '1px solid rgba(15, 23, 42, 0.08)',
+                        bgcolor: 'rgba(247, 249, 252, 0.72)',
+                      }}
+                    >
+                      {selectedConversation ? (
+                        <Stack spacing={1.5}>
+                          <Stack direction="row" justifyContent="space-between" spacing={1} alignItems="center">
+                            <Box>
+                              <Typography fontWeight={700}>
+                                {selectedConversation.contact.full_name ?? selectedConversation.contact.email}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {selectedConversation.contact.role}
+                              </Typography>
+                            </Box>
+                            <Button size="small" onClick={() => openMessageDialog(selectedConversation.contact.id)}>
+                              Repondre
+                            </Button>
+                          </Stack>
+
+                          <Stack spacing={1}>
+                            {conversationMessages.length > 0 ? (
+                              conversationMessages.map((message) => {
+                                const isMine = message.sender_email === currentUser?.email;
+
+                                return (
+                                  <Stack
+                                    key={message.id}
+                                    alignItems={isMine ? 'flex-end' : 'flex-start'}
+                                    spacing={0.5}
+                                  >
+                                    <Box
+                                      sx={{
+                                        maxWidth: '100%',
+                                        px: 1.5,
+                                        py: 1.25,
+                                        borderRadius: 1,
+                                        bgcolor: isMine ? '#1565c0' : '#fff',
+                                        color: isMine ? '#fff' : 'text.primary',
+                                        border: isMine ? 'none' : '1px solid rgba(15, 23, 42, 0.08)',
+                                      }}
+                                    >
+                                      {message.title.trim() ? (
+                                        <Typography fontWeight={700} sx={{ mb: 0.35 }}>
+                                          {message.title}
+                                        </Typography>
+                                      ) : null}
+                                      <Typography variant="body2">{message.message}</Typography>
+                                    </Box>
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                      <Typography variant="caption" color="text.secondary">
+                                        {formatTimeAgo(message.created_at)}
+                                      </Typography>
+                                      {message.is_read === false && message.recipient_email === currentUser?.email ? (
+                                        <Button size="small" onClick={() => void handleMarkMessageRead(message.id)}>
+                                          Marquer lu
+                                        </Button>
+                                      ) : null}
+                                    </Stack>
+                                  </Stack>
+                                );
+                              })
+                            ) : (
+                              <Box sx={{ py: 4 }}>
+                                <Typography fontWeight={700}>Aucun echange pour le moment</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  Lancez la conversation avec ce contact directement depuis le dashboard.
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Stack>
+                      ) : (
+                        <Box sx={{ py: 4 }}>
+                          <Typography fontWeight={700}>Aucun contact selectionne</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Choisissez un contact pour afficher la conversation.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Paper>
+                  </Grid>
+                </Grid>
               </Stack>
             </Paper>
 
@@ -474,7 +978,6 @@ const DashboardPage = () => {
               elevation={0}
               sx={{
                 p: 3,
-                borderRadius: 5,
                 border: '1px solid rgba(15, 23, 42, 0.08)',
               }}
             >
@@ -486,7 +989,6 @@ const DashboardPage = () => {
                       key={quote.id}
                       sx={{
                         p: 1.75,
-                        borderRadius: 3,
                         border: '1px solid rgba(15, 23, 42, 0.08)',
                         bgcolor: 'rgba(247, 249, 252, 0.72)',
                       }}
@@ -515,7 +1017,6 @@ const DashboardPage = () => {
               elevation={0}
               sx={{
                 p: 3,
-                borderRadius: 5,
                 border: '1px solid rgba(15, 23, 42, 0.08)',
                 flexGrow: 1,
               }}
@@ -530,7 +1031,6 @@ const DashboardPage = () => {
                         sx={{
                           width: '100%',
                           display: 'block',
-                          borderRadius: 4,
                           textAlign: 'left',
                         }}
                       >
@@ -539,7 +1039,6 @@ const DashboardPage = () => {
                           sx={{
                             p: 2,
                             height: '100%',
-                            borderRadius: 4,
                             border: '1px solid rgba(15, 23, 42, 0.08)',
                             bgcolor: 'rgba(247, 249, 252, 0.9)',
                             transition: 'transform 160ms ease, box-shadow 160ms ease',
@@ -571,7 +1070,169 @@ const DashboardPage = () => {
           </Stack>
         </Grid>
       </Grid>
-    </Stack>
+      </Stack>
+      <Dialog open={isEventDialogOpen} onClose={() => setIsEventDialogOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle>Programmer un evenement</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Titre"
+                  value={eventDraft.title}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, title: event.target.value }))}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Categorie"
+                  value={eventDraft.category}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, category: event.target.value }))}
+                >
+                  <MenuItem value="meeting">meeting</MenuItem>
+                  <MenuItem value="client">client</MenuItem>
+                  <MenuItem value="operations">operations</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="Description"
+                  value={eventDraft.description}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, description: event.target.value }))}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="Debut"
+                  InputLabelProps={{ shrink: true }}
+                  value={eventDraft.starts_at}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, starts_at: event.target.value }))}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="datetime-local"
+                  label="Fin"
+                  InputLabelProps={{ shrink: true }}
+                  value={eventDraft.ends_at}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, ends_at: event.target.value }))}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Assigne a"
+                  value={eventDraft.assigned_user_id === null ? '' : String(eventDraft.assigned_user_id)}
+                  onChange={(event) =>
+                    setEventDraft((current) => ({
+                      ...current,
+                      assigned_user_id: event.target.value === '' ? null : Number(event.target.value),
+                    }))
+                  }
+                >
+                  <MenuItem value="">Non assigne</MenuItem>
+                  {users.map((user) => (
+                    <MenuItem key={user.id} value={String(user.id)}>
+                      {(user.full_name ?? user.email) + ' · ' + user.role}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Lieu ou contexte"
+                  value={eventDraft.location}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, location: event.target.value }))}
+                />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Lien Zoom / Meet"
+                  placeholder="https://..."
+                  value={eventDraft.meeting_url}
+                  onChange={(event) => setEventDraft((current) => ({ ...current, meeting_url: event.target.value }))}
+                />
+              </Grid>
+            </Grid>
+            {eventSubmitError ? <Alert severity="error" sx={{ mt: 2.5 }}>{eventSubmitError}</Alert> : null}
+            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+              <Button onClick={() => setIsEventDialogOpen(false)}>Annuler</Button>
+              <Button variant="contained" onClick={() => void handleCreateEvent()} disabled={isEventSubmitting}>
+                {isEventSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+              </Button>
+            </Stack>
+          </Box>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isMessageDialogOpen} onClose={() => setIsMessageDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Nouveau message</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <Stack spacing={2}>
+              <TextField
+                select
+                fullWidth
+                label="Destinataire"
+                value={messageDraft.recipient_user_id === 0 ? '' : String(messageDraft.recipient_user_id)}
+                onChange={(event) =>
+                  setMessageDraft((current) => ({
+                    ...current,
+                    recipient_user_id: Number(event.target.value),
+                  }))
+                }
+              >
+                {messageContacts.map((contact) => (
+                  <MenuItem key={contact.id} value={String(contact.id)}>
+                    {(contact.full_name ?? contact.email) + ' · ' + contact.role}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                label="Titre"
+                value={messageDraft.title}
+                onChange={(event) => setMessageDraft((current) => ({ ...current, title: event.target.value }))}
+              />
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                label="Message"
+                value={messageDraft.message}
+                onChange={(event) => setMessageDraft((current) => ({ ...current, message: event.target.value }))}
+              />
+            </Stack>
+            {messageSubmitError ? <Alert severity="error" sx={{ mt: 2.5 }}>{messageSubmitError}</Alert> : null}
+            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ mt: 3 }}>
+              <Button onClick={() => setIsMessageDialogOpen(false)}>Annuler</Button>
+              <Button
+                variant="contained"
+                onClick={() => void handleSendMessage()}
+                disabled={
+                  isMessageSubmitting ||
+                  messageDraft.recipient_user_id === 0 ||
+                  messageDraft.message.trim() === ''
+                }
+              >
+                {isMessageSubmitting ? 'Envoi...' : 'Envoyer'}
+              </Button>
+            </Stack>
+          </Box>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
@@ -603,19 +1264,35 @@ const EventRow = ({ event }: EventRowProps) => {
   return (
     <Box
       sx={{
-        p: 1.5,
-        borderRadius: 3,
+        p: 1.75,
+        border: '1px solid rgba(15, 23, 42, 0.08)',
         bgcolor: 'rgba(15, 23, 42, 0.03)',
       }}
     >
-      <Stack direction="row" justifyContent="space-between" spacing={2}>
-        <Box>
-          <Typography fontWeight={700}>{event.title}</Typography>
-          <Typography variant="body2" color="text.secondary">
-            {event.description ?? 'Evenement planifie'}
-          </Typography>
-        </Box>
-        <Chip label={formatDateTime(event.starts_at)} size="small" />
+      <Stack spacing={1.25}>
+        <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="flex-start">
+          <Box>
+            <Typography fontWeight={700}>{event.title}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {event.description ?? 'Evenement planifie'}
+            </Typography>
+          </Box>
+          <Chip label={formatDateTime(event.starts_at)} size="small" />
+        </Stack>
+
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Chip label={event.category} size="small" variant="outlined" />
+          {event.assigned_user_name ? (
+            <Chip label={'Assigne: ' + event.assigned_user_name} size="small" variant="outlined" />
+          ) : null}
+          {event.location ? <Chip label={event.location} size="small" variant="outlined" /> : null}
+        </Stack>
+
+        {event.meeting_url ? (
+          <Link href={event.meeting_url} target="_blank" rel="noreferrer" underline="hover" sx={{ fontWeight: 700 }}>
+            Ouvrir le lien de reunion
+          </Link>
+        ) : null}
       </Stack>
     </Box>
   );
@@ -633,7 +1310,6 @@ const TaskCard = ({ task }: TaskCardProps) => {
     <Box
       sx={{
         p: 2,
-        borderRadius: 4,
         border: '1px solid rgba(15, 23, 42, 0.08)',
         bgcolor: '#fff',
       }}
@@ -693,16 +1369,14 @@ function formatTimeAgo(value: string) {
   return String(Math.round(diffHours / 24)) + ' j';
 }
 
-function getNotificationColor(category: DashboardNotification['category']) {
-  if (category === 'alert') {
-    return '#ef6c00';
-  }
+function toDateTimeLocalInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  const hours = String(value.getHours()).padStart(2, '0');
+  const minutes = String(value.getMinutes()).padStart(2, '0');
 
-  if (category === 'message') {
-    return '#1565c0';
-  }
-
-  return '#00897b';
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 export default DashboardPage;

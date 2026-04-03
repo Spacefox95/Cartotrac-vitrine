@@ -61,6 +61,10 @@ class DashboardEventRead(BaseSchema):
     starts_at: datetime
     ends_at: datetime | None = None
     category: str
+    assigned_user_id: int | None = None
+    assigned_user_name: str | None = None
+    location: str | None = None
+    meeting_url: str | None = None
 
 
 class DashboardEventCreate(BaseSchema):
@@ -69,6 +73,9 @@ class DashboardEventCreate(BaseSchema):
     starts_at: datetime
     ends_at: datetime | None = None
     category: str = 'meeting'
+    assigned_user_id: int | None = None
+    location: str | None = None
+    meeting_url: str | None = None
 
 
 class DashboardEventUpdate(BaseSchema):
@@ -77,6 +84,9 @@ class DashboardEventUpdate(BaseSchema):
     starts_at: datetime | None = None
     ends_at: datetime | None = None
     category: str | None = None
+    assigned_user_id: int | None = None
+    location: str | None = None
+    meeting_url: str | None = None
 
 
 class DashboardEventListResponse(BaseSchema):
@@ -87,6 +97,11 @@ class DashboardEventListResponse(BaseSchema):
 class DashboardNotificationRead(BaseSchema):
     id: int
     sender: str
+    sender_user_id: int | None = None
+    sender_email: str | None = None
+    recipient_user_id: int | None = None
+    recipient: str | None = None
+    recipient_email: str | None = None
     title: str
     message: str
     category: str
@@ -96,6 +111,8 @@ class DashboardNotificationRead(BaseSchema):
 
 class DashboardNotificationCreate(BaseSchema):
     sender: str
+    sender_user_id: int | None = None
+    recipient_user_id: int | None = None
     title: str
     message: str
     category: str = 'general'
@@ -105,6 +122,8 @@ class DashboardNotificationCreate(BaseSchema):
 
 class DashboardNotificationUpdate(BaseSchema):
     sender: str | None = None
+    sender_user_id: int | None = None
+    recipient_user_id: int | None = None
     title: str | None = None
     message: str | None = None
     category: str | None = None
@@ -114,6 +133,24 @@ class DashboardNotificationUpdate(BaseSchema):
 
 class DashboardNotificationListResponse(BaseSchema):
     items: list[DashboardNotificationRead]
+    total: int
+
+
+class DashboardMessageCreate(BaseSchema):
+    recipient_user_id: int
+    title: str = ''
+    message: str
+
+
+class DashboardContactRead(BaseSchema):
+    id: int
+    email: str
+    full_name: str | None = None
+    role: str
+
+
+class DashboardContactListResponse(BaseSchema):
+    items: list[DashboardContactRead]
     total: int
 
 

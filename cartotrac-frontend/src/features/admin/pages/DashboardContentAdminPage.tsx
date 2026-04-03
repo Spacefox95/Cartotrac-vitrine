@@ -39,6 +39,7 @@ import {
   updateDashboardNotificationRequest,
   updateDashboardTaskRequest,
 } from '../api/dashboardAdminApi';
+import { fetchUsersRequest } from '../api/usersApi';
 import type {
   AdminDashboardEvent,
   AdminDashboardEventPayload,
@@ -47,6 +48,7 @@ import type {
   AdminDashboardTask,
   AdminDashboardTaskPayload,
 } from '../types/dashboardAdmin.types';
+import type { AdminUser } from '../types/user.types';
 
 type SectionKey = 'tasks' | 'events' | 'notifications';
 type DialogMode = 'create' | 'edit';
@@ -68,6 +70,9 @@ const emptyEvent: AdminDashboardEventPayload = {
   starts_at: '',
   ends_at: '',
   category: 'meeting',
+  assigned_user_id: null,
+  location: '',
+  meeting_url: '',
 };
 
 const emptyNotification: AdminDashboardNotificationPayload = {
@@ -86,12 +91,27 @@ const getSectionFromParam = (value: string | null): SectionKey => {
   return 'tasks';
 };
 
+const buildEventDraftFromDate = (date: Date): AdminDashboardEventPayload => {
+  const normalizedDate = new Date(date);
+  normalizedDate.setSeconds(0, 0);
+
+  const endDate = new Date(normalizedDate);
+  endDate.setMinutes(endDate.getMinutes() + 45);
+
+  return {
+    ...emptyEvent,
+    starts_at: toDateTimeLocalInput(normalizedDate),
+    ends_at: toDateTimeLocalInput(endDate),
+  };
+};
+
 const DashboardContentAdminPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [section, setSection] = useState<SectionKey>(() => getSectionFromParam(searchParams.get('tab')));
   const [tasks, setTasks] = useState<AdminDashboardTask[]>([]);
   const [events, setEvents] = useState<AdminDashboardEvent[]>([]);
   const [notifications, setNotifications] = useState<AdminDashboardNotification[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -109,6 +129,35 @@ const DashboardContentAdminPage = () => {
     setSection((current) => (current === nextSection ? current : nextSection));
   }, [searchParams]);
 
+  useEffect(() => {
+    const shouldCreateEvent = searchParams.get('create') === 'event';
+    const startsAt = searchParams.get('starts_at');
+
+    if (shouldCreateEvent === false || startsAt === null || isDialogOpen) {
+      return;
+    }
+
+    const parsedDate = new Date(startsAt);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return;
+    }
+
+    setSection('events');
+    setDialogMode('create');
+    setSelectedTask(null);
+    setSelectedEvent(null);
+    setSelectedNotification(null);
+    setTaskValues(emptyTask);
+    setNotificationValues(emptyNotification);
+    setEventValues(buildEventDraftFromDate(parsedDate));
+    setIsDialogOpen(true);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('create');
+    nextParams.delete('starts_at');
+    setSearchParams(nextParams, { replace: true });
+  }, [isDialogOpen, searchParams, setSearchParams]);
+
   const updateSection = (nextSection: SectionKey) => {
     setSection(nextSection);
     setSearchParams({ tab: nextSection }, { replace: true });
@@ -118,14 +167,16 @@ const DashboardContentAdminPage = () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const [taskResponse, eventResponse, notificationResponse] = await Promise.all([
+      const [taskResponse, eventResponse, notificationResponse, usersResponse] = await Promise.all([
         fetchDashboardTasksRequest(),
         fetchDashboardEventsRequest(),
         fetchDashboardNotificationsRequest(),
+        fetchUsersRequest(),
       ]);
       setTasks(taskResponse.items);
       setEvents(eventResponse.items);
       setNotifications(notificationResponse.items);
+      setUsers(usersResponse.items);
     } catch {
       setErrorMessage('Impossible de charger le contenu du dashboard.');
     } finally {
@@ -183,6 +234,9 @@ const DashboardContentAdminPage = () => {
       starts_at: toDateTimeLocal(event.starts_at),
       ends_at: event.ends_at ? toDateTimeLocal(event.ends_at) : '',
       category: event.category,
+      assigned_user_id: event.assigned_user_id,
+      location: event.location ?? '',
+      meeting_url: event.meeting_url ?? '',
     });
     setIsDialogOpen(true);
   };
@@ -350,6 +404,8 @@ const DashboardContentAdminPage = () => {
                 <TableCell>Debut</TableCell>
                 <TableCell>Fin</TableCell>
                 <TableCell>Categorie</TableCell>
+                <TableCell>Assigne</TableCell>
+                <TableCell>Visio / lieu</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -360,6 +416,8 @@ const DashboardContentAdminPage = () => {
                   <TableCell>{formatDateTime(event.starts_at)}</TableCell>
                   <TableCell>{event.ends_at ? formatDateTime(event.ends_at) : '-'}</TableCell>
                   <TableCell>{event.category}</TableCell>
+                  <TableCell>{event.assigned_user_name ?? '-'}</TableCell>
+                  <TableCell>{event.meeting_url ?? event.location ?? '-'}</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <Button size="small" onClick={() => openEditEventDialog(event)}>
@@ -469,6 +527,33 @@ const DashboardContentAdminPage = () => {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Fin" type="datetime-local" InputLabelProps={{ shrink: true }} value={eventValues.ends_at} onChange={(event) => setEventValues((current) => ({ ...current, ends_at: event.target.value }))} />
                 </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Assigne a"
+                    value={eventValues.assigned_user_id === null ? '' : String(eventValues.assigned_user_id)}
+                    onChange={(event) =>
+                      setEventValues((current) => ({
+                        ...current,
+                        assigned_user_id: event.target.value === '' ? null : Number(event.target.value),
+                      }))
+                    }
+                  >
+                    <MenuItem value="">Non assigne</MenuItem>
+                    {users.map((user) => (
+                      <MenuItem key={user.id} value={String(user.id)}>
+                        {(user.full_name ?? user.email) + ' · ' + user.role}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField fullWidth label="Lieu ou contexte" value={eventValues.location} onChange={(event) => setEventValues((current) => ({ ...current, location: event.target.value }))} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField fullWidth label="Lien Zoom / Meet" placeholder="https://..." value={eventValues.meeting_url} onChange={(event) => setEventValues((current) => ({ ...current, meeting_url: event.target.value }))} />
+                </Grid>
               </Grid>
             ) : null}
 
@@ -511,6 +596,16 @@ const DashboardContentAdminPage = () => {
 
 function toDateTimeLocal(value: string) {
   return new Date(value).toISOString().slice(0, 16);
+}
+
+function toDateTimeLocalInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  const hours = String(value.getHours()).padStart(2, '0');
+  const minutes = String(value.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function formatDateTime(value: string) {

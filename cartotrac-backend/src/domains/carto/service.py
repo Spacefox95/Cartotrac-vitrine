@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 
 from src.domains.carto.schemas import (
     AddressAutocompleteResponse,
+    AddressReverseGeocodeResponse,
     AddressSuggestion,
     BuildingFootprintEstimateParams,
     BuildingFootprintEstimateResponse,
@@ -19,6 +20,7 @@ from src.domains.carto.schemas import (
 
 API_CARTO_CADASTRE_BASE_URL = 'https://apicarto.ign.fr/api/cadastre'
 API_GEOCODING_BASE_URL = 'https://data.geopf.fr/geocodage/search'
+API_GEOCODING_REVERSE_BASE_URL = 'https://data.geopf.fr/geocodage/reverse'
 API_GEOPF_WFS_BASE_URL = 'https://data.geopf.fr/wfs/ows'
 
 
@@ -104,41 +106,30 @@ class CartoService:
         source_url = API_GEOCODING_BASE_URL + '?' + urlencode(query_params)
         payload = CartoService._fetch_json(source_url)
         features = payload.get('features', []) if isinstance(payload, dict) else []
-        items: list[AddressSuggestion] = []
-
-        for feature in features:
-            properties = feature.get('properties', {}) if isinstance(feature, dict) else {}
-            geometry = feature.get('geometry', {}) if isinstance(feature, dict) else {}
-            coordinates = geometry.get('coordinates', []) if isinstance(geometry, dict) else []
-
-            if not isinstance(coordinates, list) or len(coordinates) < 2:
-                continue
-
-            try:
-                longitude = float(coordinates[0])
-                latitude = float(coordinates[1])
-            except (TypeError, ValueError):
-                continue
-
-            items.append(
-                AddressSuggestion(
-                    label=str(properties.get('label') or properties.get('name') or query),
-                    city=str(properties.get('city')) if properties.get('city') is not None else None,
-                    postcode=str(properties.get('postcode')) if properties.get('postcode') is not None else None,
-                    citycode=str(properties.get('citycode')) if properties.get('citycode') is not None else None,
-                    context=str(properties.get('context')) if properties.get('context') is not None else None,
-                    longitude=longitude,
-                    latitude=latitude,
-                    kind=str(properties.get('type')) if properties.get('type') is not None else None,
-                    score=float(properties.get('score')) if properties.get('score') is not None else None,
-                )
-            )
+        items = [item for feature in features if (item := _parse_address_feature(feature, fallback_label=query)) is not None]
 
         return AddressAutocompleteResponse(
             items=items,
             total=len(items),
             source_url=source_url,
         )
+
+    @staticmethod
+    def reverse_geocode_address(lon: float, lat: float) -> AddressReverseGeocodeResponse:
+        query_params = {
+            'lon': str(lon),
+            'lat': str(lat),
+            'limit': '1',
+        }
+        source_url = API_GEOCODING_REVERSE_BASE_URL + '?' + urlencode(query_params)
+        payload = CartoService._fetch_json(source_url)
+        features = payload.get('features', []) if isinstance(payload, dict) else []
+        item = None
+
+        if features:
+            item = _parse_address_feature(features[0], fallback_label=f'{lat:.5f}, {lon:.5f}')
+
+        return AddressReverseGeocodeResponse(item=item, source_url=source_url)
 
     @staticmethod
     def _fetch_json(source_url: str) -> dict:
@@ -161,6 +152,36 @@ class CartoService:
             )
 
         return payload
+
+
+def _parse_address_feature(feature: object, fallback_label: str) -> AddressSuggestion | None:
+    if not isinstance(feature, dict):
+        return None
+
+    properties = feature.get('properties', {}) if isinstance(feature.get('properties'), dict) else {}
+    geometry = feature.get('geometry', {}) if isinstance(feature.get('geometry'), dict) else {}
+    coordinates = geometry.get('coordinates', []) if isinstance(geometry, dict) else []
+
+    if not isinstance(coordinates, list) or len(coordinates) < 2:
+        return None
+
+    try:
+        longitude = float(coordinates[0])
+        latitude = float(coordinates[1])
+    except (TypeError, ValueError):
+        return None
+
+    return AddressSuggestion(
+        label=str(properties.get('label') or properties.get('name') or fallback_label),
+        city=str(properties.get('city')) if properties.get('city') is not None else None,
+        postcode=str(properties.get('postcode')) if properties.get('postcode') is not None else None,
+        citycode=str(properties.get('citycode')) if properties.get('citycode') is not None else None,
+        context=str(properties.get('context')) if properties.get('context') is not None else None,
+        longitude=longitude,
+        latitude=latitude,
+        kind=str(properties.get('type')) if properties.get('type') is not None else None,
+        score=float(properties.get('score')) if properties.get('score') is not None else None,
+    )
 
 
 def _find_best_building_index(features: list[dict], point: list[float]) -> int | None:
@@ -231,12 +252,38 @@ def _geometry_to_polygons(geometry: dict | None) -> list[list[list[float]]]:
     coordinates = geometry.get('coordinates')
 
     if geometry_type == 'Polygon' and isinstance(coordinates, list) and coordinates:
-        return [coordinates[0] or []]
+        normalized = _normalize_polygon(coordinates[0])
+        return [normalized] if normalized else []
 
     if geometry_type == 'MultiPolygon' and isinstance(coordinates, list):
-        return [polygon[0] or [] for polygon in coordinates if polygon]
+        polygons = [_normalize_polygon(polygon[0]) for polygon in coordinates if polygon]
+        return [polygon for polygon in polygons if polygon]
 
     return []
+
+
+def _normalize_polygon(raw_polygon: object) -> list[list[float]]:
+    if not isinstance(raw_polygon, list):
+        return []
+
+    points: list[list[float]] = []
+
+    for raw_point in raw_polygon:
+        normalized_point = _normalize_position(raw_point)
+        if normalized_point is not None:
+            points.append(normalized_point)
+
+    return points
+
+
+def _normalize_position(raw_point: object) -> list[float] | None:
+    if not isinstance(raw_point, (list, tuple)) or len(raw_point) < 2:
+        return None
+
+    try:
+        return [float(raw_point[0]), float(raw_point[1])]
+    except (TypeError, ValueError):
+        return None
 
 
 def _is_point_inside_polygon(point: list[float], polygon: list[list[float]]) -> bool:
