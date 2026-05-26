@@ -1,11 +1,11 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy.orm import Session
 
 from src.db.session import SessionLocal
 
 
-def get_database() -> Generator[Session, None, None]:
+async def get_database() -> AsyncGenerator[Session, None]:
     db = SessionLocal()
     try:
         yield db

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
         'http://127.0.0.1:5173',
         'http://localhost:5173',
     ]
+    cors_origin_regex: str = r'^https?://(localhost|127\.0\.0\.1)(:\d+)?$'
 
     db_host: str = '127.0.0.1'
     db_port: int = 5432
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
     db_password: str = 'cartotrac'
 
     secret_key: str = 'change-me'
+    bcrypt_rounds: int = 12
     access_token_expire_minutes: int = 60
     quote_validity_days: int = 30
     quote_pdf_company_name: str = 'Cartotrac'

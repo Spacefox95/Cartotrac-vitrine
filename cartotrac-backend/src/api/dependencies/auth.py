@@ -14,7 +14,7 @@ from src.domains.users.service import UsersService
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_current_user(
+async def get_current_user(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
@@ -66,7 +66,7 @@ def get_current_user(
     )
 
 
-def get_current_admin(
+async def get_current_admin(
     current_user: CurrentUserResponse = Depends(get_current_user),
 ) -> CurrentUserResponse:
     if not current_user.is_admin:
@@ -79,7 +79,7 @@ def get_current_admin(
 
 
 def require_permission(permission: str) -> Callable[[CurrentUserResponse], CurrentUserResponse]:
-    def dependency(
+    async def dependency(
         current_user: CurrentUserResponse = Depends(get_current_user),
     ) -> CurrentUserResponse:
         if permission not in current_user.permissions:

@@ -37,3 +37,17 @@ Le repo embarque maintenant :
 
 Référence :
 `docs/architecture/cicd.md`
+
+## Dossier projet
+
+Un dossier de preuves projet est disponible dans `docs/projet` :
+
+- cadrage et périmètre
+- conception et décisions d'architecture
+- accessibilité et limites connues
+- sécurité justifiée
+- stratégie de tests
+- validation de déploiement
+
+Point d'entrée :
+`docs/projet/README.md`

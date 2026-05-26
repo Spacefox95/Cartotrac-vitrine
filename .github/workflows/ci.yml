@@ -74,4 +74,4 @@ jobs:
         run: poetry run python -m compileall src alembic
 
       - name: Tests
-        run: poetry run pytest src/tests/test_rbac_api.py -q
+        run: BCRYPT_ROUNDS=4 PYTHONPATH=. poetry run pytest src/tests/test_rbac_api.py -q
