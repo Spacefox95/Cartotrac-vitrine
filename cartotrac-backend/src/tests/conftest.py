@@ -1,9 +1,10 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import anyio
 import pytest
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -24,7 +25,7 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def override_get_database() -> Generator[Session, None, None]:
+async def override_get_database() -> AsyncGenerator[Session, None]:
     db = TestingSessionLocal()
     try:
         yield db
@@ -33,6 +34,32 @@ def override_get_database() -> Generator[Session, None, None]:
 
 
 app.dependency_overrides[get_database] = override_get_database
+
+
+class SyncASGIClient:
+    def __init__(self, app_instance) -> None:
+        self.app = app_instance
+        self.base_url = 'http://testserver'
+
+    def request(self, method: str, url: str, **kwargs) -> Response:
+        async def send_request() -> Response:
+            transport = ASGITransport(app=self.app)
+            async with AsyncClient(transport=transport, base_url=self.base_url) as client:
+                return await client.request(method, url, **kwargs)
+
+        return anyio.run(send_request)
+
+    def get(self, url: str, **kwargs) -> Response:
+        return self.request('GET', url, **kwargs)
+
+    def post(self, url: str, **kwargs) -> Response:
+        return self.request('POST', url, **kwargs)
+
+    def patch(self, url: str, **kwargs) -> Response:
+        return self.request('PATCH', url, **kwargs)
+
+    def delete(self, url: str, **kwargs) -> Response:
+        return self.request('DELETE', url, **kwargs)
 
 
 @pytest.fixture(autouse=True)
@@ -44,9 +71,8 @@ def reset_database() -> Generator[None, None, None]:
 
 
 @pytest.fixture()
-def client() -> Generator[TestClient, None, None]:
-    with TestClient(app) as test_client:
-        yield test_client
+def client() -> Generator[SyncASGIClient, None, None]:
+    yield SyncASGIClient(app)
 
 
 @pytest.fixture()

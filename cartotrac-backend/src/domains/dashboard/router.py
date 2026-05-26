@@ -27,7 +27,7 @@ router = APIRouter(prefix='/dashboard', tags=['dashboard'])
 
 
 @router.get('', response_model=DashboardResponse)
-def get_dashboard(
+async def get_dashboard(
     current_user: CurrentUserResponse = Depends(get_current_user),
     db: Session = Depends(get_database),
 ) -> DashboardResponse:
@@ -35,7 +35,7 @@ def get_dashboard(
 
 
 @router.get('/tasks', response_model=DashboardTaskListResponse)
-def list_tasks(
+async def list_tasks(
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
 ) -> DashboardTaskListResponse:
@@ -43,7 +43,7 @@ def list_tasks(
 
 
 @router.post('/tasks', response_model=DashboardTaskRead, status_code=status.HTTP_201_CREATED)
-def create_task(
+async def create_task(
     payload: DashboardTaskCreate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -52,7 +52,7 @@ def create_task(
 
 
 @router.patch('/tasks/{task_id}', response_model=DashboardTaskRead)
-def update_task(
+async def update_task(
     task_id: int,
     payload: DashboardTaskUpdate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
@@ -65,7 +65,7 @@ def update_task(
 
 
 @router.delete('/tasks/{task_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(
+async def delete_task(
     task_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -78,7 +78,7 @@ def delete_task(
 
 
 @router.get('/events', response_model=DashboardEventListResponse)
-def list_events(
+async def list_events(
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
 ) -> DashboardEventListResponse:
@@ -86,7 +86,7 @@ def list_events(
 
 
 @router.post('/events', response_model=DashboardEventRead, status_code=status.HTTP_201_CREATED)
-def create_event(
+async def create_event(
     payload: DashboardEventCreate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -102,7 +102,7 @@ def create_event(
 
 
 @router.patch('/events/{event_id}', response_model=DashboardEventRead)
-def update_event(
+async def update_event(
     event_id: int,
     payload: DashboardEventUpdate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
@@ -119,7 +119,7 @@ def update_event(
 
 
 @router.delete('/events/{event_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_event(
+async def delete_event(
     event_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -132,7 +132,7 @@ def delete_event(
 
 
 @router.get('/notifications', response_model=DashboardNotificationListResponse)
-def list_notifications(
+async def list_notifications(
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
 ) -> DashboardNotificationListResponse:
@@ -140,7 +140,7 @@ def list_notifications(
 
 
 @router.post('/notifications', response_model=DashboardNotificationRead, status_code=status.HTTP_201_CREATED)
-def create_notification(
+async def create_notification(
     payload: DashboardNotificationCreate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -149,7 +149,7 @@ def create_notification(
 
 
 @router.patch('/notifications/{notification_id}', response_model=DashboardNotificationRead)
-def update_notification(
+async def update_notification(
     notification_id: int,
     payload: DashboardNotificationUpdate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
@@ -162,7 +162,7 @@ def update_notification(
 
 
 @router.delete('/notifications/{notification_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_notification(
+async def delete_notification(
     notification_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -175,7 +175,7 @@ def delete_notification(
 
 
 @router.get('/message-contacts', response_model=DashboardContactListResponse)
-def list_message_contacts(
+async def list_message_contacts(
     current_user: CurrentUserResponse = Depends(get_current_user),
     db: Session = Depends(get_database),
 ) -> DashboardContactListResponse:
@@ -183,7 +183,7 @@ def list_message_contacts(
 
 
 @router.get('/messages', response_model=DashboardNotificationListResponse)
-def list_messages(
+async def list_messages(
     current_user: CurrentUserResponse = Depends(get_current_user),
     db: Session = Depends(get_database),
 ) -> DashboardNotificationListResponse:
@@ -191,7 +191,7 @@ def list_messages(
 
 
 @router.post('/messages', response_model=DashboardNotificationRead, status_code=status.HTTP_201_CREATED)
-def send_message(
+async def send_message(
     payload: DashboardMessageCreate,
     current_user: CurrentUserResponse = Depends(get_current_user),
     db: Session = Depends(get_database),
@@ -205,7 +205,7 @@ def send_message(
 
 
 @router.patch('/messages/{message_id}/read', response_model=DashboardNotificationRead)
-def mark_message_read(
+async def mark_message_read(
     message_id: int,
     current_user: CurrentUserResponse = Depends(get_current_user),
     db: Session = Depends(get_database),

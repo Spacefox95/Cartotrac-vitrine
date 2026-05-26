@@ -11,7 +11,7 @@ router = APIRouter(prefix='/users', tags=['users'])
 
 
 @router.get('', response_model=UserListResponse)
-def list_users(
+async def list_users(
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
 ) -> UserListResponse:
@@ -19,7 +19,7 @@ def list_users(
 
 
 @router.get('/{user_id}', response_model=UserRead)
-def get_user(
+async def get_user(
     user_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -31,7 +31,7 @@ def get_user(
 
 
 @router.post('', response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def create_user(
+async def create_user(
     payload: UserCreate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),
@@ -43,7 +43,7 @@ def create_user(
 
 
 @router.patch('/{user_id}', response_model=UserRead)
-def update_user(
+async def update_user(
     user_id: int,
     payload: UserUpdate,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
@@ -60,7 +60,7 @@ def update_user(
 
 
 @router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(
+async def delete_user(
     user_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('users:manage')),
     db: Session = Depends(get_database),

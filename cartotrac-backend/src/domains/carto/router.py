@@ -17,7 +17,7 @@ router = APIRouter(prefix='/carto', tags=['carto'])
 
 
 @router.get('/address/autocomplete', response_model=AddressAutocompleteResponse)
-def autocomplete_address(
+async def autocomplete_address(
     current_user: CurrentUserResponse = Depends(get_current_user),
     q: str = Query(min_length=3),
     limit: int = Query(default=5, ge=1, le=10),
@@ -27,7 +27,7 @@ def autocomplete_address(
 
 
 @router.get('/address/reverse', response_model=AddressReverseGeocodeResponse)
-def reverse_geocode_address(
+async def reverse_geocode_address(
     current_user: CurrentUserResponse = Depends(get_current_user),
     lon: float = Query(ge=-180, le=180),
     lat: float = Query(ge=-90, le=90),
@@ -37,7 +37,7 @@ def reverse_geocode_address(
 
 
 @router.get('/buildings/estimate', response_model=BuildingFootprintEstimateResponse)
-def estimate_building_footprint(
+async def estimate_building_footprint(
     current_user: CurrentUserResponse = Depends(get_current_user),
     lon: float = Query(ge=-180, le=180),
     lat: float = Query(ge=-90, le=90),
@@ -58,7 +58,7 @@ def estimate_building_footprint(
 
 
 @router.get('/cadastre/search', response_model=CadastreSearchResponse)
-def search_cadastre(
+async def search_cadastre(
     current_user: CurrentUserResponse = Depends(get_current_user),
     code_insee: str | None = Query(default=None, min_length=5, max_length=5),
     code_dep: str | None = Query(default=None, min_length=2, max_length=3),

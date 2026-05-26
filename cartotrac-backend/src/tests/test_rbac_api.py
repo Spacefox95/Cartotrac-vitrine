@@ -1,10 +1,8 @@
-from fastapi.testclient import TestClient
-
-from src.tests.conftest import auth_headers
+from src.tests.conftest import SyncASGIClient, auth_headers
 
 
 def test_login_and_me_include_role_permissions_and_admin_flag(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     login_response = client.post(
@@ -37,7 +35,7 @@ def test_login_and_me_include_role_permissions_and_admin_flag(
 
 
 def test_users_management_requires_admin_permission(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     viewer_response = client.get(
@@ -58,7 +56,7 @@ def test_users_management_requires_admin_permission(
 
 
 def test_manager_can_write_clients_but_cannot_manage_users(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     create_client_response = client.post(
@@ -84,7 +82,7 @@ def test_manager_can_write_clients_but_cannot_manage_users(
 
 
 def test_sales_can_write_quotes_but_cannot_write_clients(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     seeded_client = seeded_data['client']
@@ -126,7 +124,7 @@ def test_sales_can_write_quotes_but_cannot_write_clients(
 
 
 def test_viewer_has_read_only_access(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     list_clients_response = client.get(
@@ -150,7 +148,7 @@ def test_viewer_has_read_only_access(
 
 
 def test_viewer_can_download_quote_pdf(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     quote = seeded_data['quote']
@@ -167,7 +165,7 @@ def test_viewer_can_download_quote_pdf(
 
 
 def test_dashboard_returns_live_summary_and_recent_items(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     response = client.get(
@@ -198,7 +196,7 @@ def test_dashboard_returns_live_summary_and_recent_items(
 
 
 def test_admin_can_crud_dashboard_events_with_assignment_and_meeting_link(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     users = seeded_data['users']
@@ -250,7 +248,7 @@ def test_admin_can_crud_dashboard_events_with_assignment_and_meeting_link(
 
 
 def test_authenticated_user_can_send_and_read_messages(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     users = seeded_data['users']
@@ -293,7 +291,7 @@ def test_authenticated_user_can_send_and_read_messages(
 
 
 def test_admin_can_crud_dashboard_tasks(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
     viewer_response = client.get(
@@ -346,7 +344,7 @@ def test_admin_can_crud_dashboard_tasks(
 
 
 def test_authenticated_user_can_estimate_building_footprint_via_carto_proxy(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
@@ -398,7 +396,7 @@ def test_authenticated_user_can_estimate_building_footprint_via_carto_proxy(
 
 
 def test_authenticated_user_can_search_cadastre_via_carto_proxy(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
@@ -488,7 +486,7 @@ def test_building_polygon_helpers_ignore_extra_coordinate_dimensions() -> None:
 
 
 def test_authenticated_user_can_reverse_geocode_address_via_carto_proxy(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
@@ -527,7 +525,7 @@ def test_authenticated_user_can_reverse_geocode_address_via_carto_proxy(
 
 
 def test_authenticated_user_can_fetch_address_autocomplete_suggestions(
-    client: TestClient,
+    client: SyncASGIClient,
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:

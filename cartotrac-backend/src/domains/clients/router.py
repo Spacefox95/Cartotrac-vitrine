@@ -16,7 +16,7 @@ router = APIRouter(prefix='/clients', tags=['clients'])
 
 
 @router.get('', response_model=ClientListResponse)
-def list_clients(
+async def list_clients(
     current_user: CurrentUserResponse = Depends(require_permission('clients:read')),
     db: Session = Depends(get_database),
     limit: int = Query(default=20, ge=1, le=100),
@@ -32,7 +32,7 @@ def list_clients(
 
 
 @router.get('/{client_id}', response_model=ClientRead)
-def get_client(
+async def get_client(
     client_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('clients:read')),
     db: Session = Depends(get_database),
@@ -47,7 +47,7 @@ def get_client(
 
 
 @router.post('', response_model=ClientRead, status_code=status.HTTP_201_CREATED)
-def create_client(
+async def create_client(
     payload: ClientCreate,
     current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
     db: Session = Depends(get_database),
@@ -56,7 +56,7 @@ def create_client(
 
 
 @router.patch('/{client_id}', response_model=ClientRead)
-def update_client(
+async def update_client(
     client_id: int,
     payload: ClientUpdate,
     current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
@@ -72,7 +72,7 @@ def update_client(
 
 
 @router.delete('/{client_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_client(
+async def delete_client(
     client_id: int,
     current_user: CurrentUserResponse = Depends(require_permission('clients:write')),
     db: Session = Depends(get_database),

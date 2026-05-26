@@ -14,7 +14,7 @@ router = APIRouter(prefix='/auth', tags=['auth'])
 
 
 @router.post('/login', response_model=TokenResponse)
-def login(
+async def login(
     payload: LoginRequest,
     db: Session = Depends(get_database),
 ) -> TokenResponse:
@@ -30,7 +30,7 @@ def login(
 
 
 @router.get('/me', response_model=CurrentUserResponse)
-def get_me(
+async def get_me(
     current_user: CurrentUserResponse = Depends(get_current_user),
 ) -> CurrentUserResponse:
     return current_user
