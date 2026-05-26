@@ -1,4 +1,4 @@
-import { ArrowOutward, SouthWest, Timeline, TravelExplore } from '@mui/icons-material';
+import { ArrowOutward } from '@mui/icons-material';
 import { Box, Button, Chip, Grid, Paper, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -20,10 +20,13 @@ type HeroSectionProps = {
     to: string;
   };
   highlights: string[];
-  cards: HeroCard[];
+  cards?: HeroCard[];
+  image?: {
+    src: string;
+    alt: string;
+  };
 };
 
-const icons = [TravelExplore, Timeline, SouthWest];
 
 const HeroSection = ({
   eyebrow,
@@ -33,7 +36,10 @@ const HeroSection = ({
   secondaryCta,
   highlights,
   cards,
+  image,
 }: HeroSectionProps) => {
+  const hasSideContent = image || cards?.length;
+
   return (
     <Paper
       sx={{
@@ -86,42 +92,44 @@ const HeroSection = ({
             </Stack>
           </Stack>
         </Grid>
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Stack spacing={1.5} sx={{ height: '100%' }}>
-            {cards.map((card, index) => {
-              const Icon = icons[index % icons.length];
-              return (
-                <Paper
-                  key={card.title}
-                  sx={{
-                    p: 2.5,
-                    height: '100%',
-                    bgcolor: 'rgba(255,255,255,0.72)',
-                    border: '1px solid rgba(85, 96, 111, 0.08)',
-                  }}
-                >
-                  <Stack spacing={1.25}>
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 2,
-                        display: 'grid',
-                        placeItems: 'center',
-                        bgcolor: 'rgba(85, 96, 111, 0.08)',
-                        color: 'primary.main',
-                      }}
-                    >
-                      <Icon fontSize="small" />
-                    </Box>
-                    <Typography variant="h4">{card.title}</Typography>
-                    <Typography color="text.secondary">{card.description}</Typography>
-                  </Stack>
-                </Paper>
-              );
-            })}
-          </Stack>
-        </Grid>
+        {hasSideContent ? (
+          <Grid size={{ xs: 12, md: 5 }}>
+            {image ? (
+              <Box
+                component="img"
+                src={image.src}
+                alt={image.alt}
+                loading="eager"
+                sx={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  minHeight: { xs: 260, md: 420 },
+                  objectFit: 'cover',
+                  borderRadius: 2,
+                }}
+              />
+            ) : (
+              <Stack spacing={1.5} sx={{ height: '100%', justifyContent: 'center' }}>
+                {cards?.map((card) => (
+                  <Paper
+                    key={card.title}
+                    sx={{
+                      p: 2.25,
+                      bgcolor: 'rgba(255, 255, 255, 0.72)',
+                      boxShadow: 'none',
+                    }}
+                  >
+                    <Stack spacing={0.75}>
+                      <Typography variant="h4">{card.title}</Typography>
+                      <Typography color="text.secondary">{card.description}</Typography>
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Grid>
+        ) : null}
       </Grid>
     </Paper>
   );

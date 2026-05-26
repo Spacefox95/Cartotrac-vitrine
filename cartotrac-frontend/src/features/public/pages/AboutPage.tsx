@@ -5,28 +5,28 @@ import HeroSection from 'features/public/components/HeroSection';
 
 const values = [
   {
-    title: 'Clarté avant surenchère',
-    description: 'Nous privilégions les flux lisibles, les décisions explicables et les écrans utiles au quotidien.',
+    title: 'Précision utile',
+    description: 'Nous adaptons le niveau de détail aux décisions à prendre : inspecter, mesurer, chiffrer, suivre ou archiver.',
     icon: AutoAwesome,
   },
   {
-    title: 'Terrain avant abstraction',
-    description: 'Le logiciel doit aider à comprendre un lieu réel, pas seulement à remplir des champs.',
+    title: 'Terrain d’abord',
+    description: 'Chaque mission part du lieu réel, de ses contraintes et des livrables qui seront vraiment exploités ensuite.',
     icon: PinDrop,
   },
   {
-    title: 'Progression structurée',
-    description: 'On pose une base cohérente puis on l’enrichit par couches, sans perdre les acquis.',
+    title: 'Données lisibles',
+    description: 'Orthophotos, modèles, plans et volumes doivent rester compréhensibles par les équipes techniques comme par les décideurs.',
     icon: Timeline,
   },
 ];
 
 const roadmap = [
-  'Site vitrine clair et cohérent avec l’outil métier',
-  'Intranet sécurisé pour les équipes et les rôles',
-  'Gestion clients et devis reliés au contexte terrain',
-  'Cadastre et mesure préparatoire déjà actifs',
-  'Extensions futures : missions, drones, comptabilité, 3D',
+  'Écoute du besoin et validation du périmètre d’intervention',
+  'Choix de la méthode : drone, photogrammétrie, GNSS RTK, SIG ou modélisation',
+  'Acquisition terrain avec attention portée à la sécurité et aux contraintes locales',
+  'Traitement des données et contrôle de cohérence des livrables',
+  'Transmission de supports exploitables pour vos projets ou vos partenaires',
 ];
 
 const AboutPage = () => {
@@ -34,23 +34,23 @@ const AboutPage = () => {
     <Stack spacing={4.5}>
       <HeroSection
         eyebrow="À propos"
-        title="Cartotrac naît d’un besoin simple : mieux relier lecture du terrain et préparation commerciale."
-        description="Le projet part d’un constat très concret. Dans beaucoup d’activités terrain, on jongle entre site vitrine, messages entrants, cartes, captures d’écran, fichiers temporaires et devis. Cartotrac vise à remettre de l’ordre dans cette chaîne en créant un socle plus continu entre compréhension d’un lieu, qualification du besoin et réponse commerciale."
+        title="Cartotrac relie acquisition drone, lecture du terrain et livrables techniques."
+        description="La démarche Cartotrac est simple : partir d’un besoin concret, relever le terrain avec les bons moyens, puis produire des données propres pour les professionnels du bâtiment, des carrières, de la topographie, de l’agriculture, de l’architecture et du patrimoine."
         primaryCta={{ label: 'Voir les services', to: '/services' }}
         secondaryCta={{ label: 'Prendre contact', to: '/contact' }}
-        highlights={['Produit utile', 'Approche incrémentale', 'Vision métier']}
+        highlights={['Drone', 'Topographie', 'Photogrammétrie', 'Livrables 3D']}
         cards={[
           {
-            title: 'Un socle réel',
-            description: 'Le projet ne se contente pas d’une promesse vitrine : clients, devis et cadastre existent déjà dans l’application.',
+            title: 'Observation',
+            description: 'Voir précisément un site, une toiture, une parcelle, un ouvrage ou une zone d’exploitation.',
           },
           {
-            title: 'Une logique métier',
-            description: 'Chaque brique cherche à faire gagner du temps sur le chemin entre un lieu à comprendre et une action à engager.',
+            title: 'Mesure',
+            description: 'Transformer les prises de vues en surfaces, volumes, plans ou modèles numériques.',
           },
           {
-            title: 'Une trajectoire assumée',
-            description: 'La plateforme est pensée pour accueillir d’autres modules sans perdre en lisibilité.',
+            title: 'Transmission',
+            description: 'Livrer des supports clairs pour vos études, diagnostics, suivis et décisions.',
           },
         ]}
       />
@@ -74,9 +74,9 @@ const AboutPage = () => {
           <Grid size={{ xs: 12, md: 5 }}>
             <Stack spacing={1.25}>
               <Architecture sx={{ color: 'primary.main' }} />
-              <Typography variant="h2">Une construction par étapes</Typography>
+              <Typography variant="h2">Une approche progressive</Typography>
               <Typography color="text.secondary">
-                Cartotrac avance comme un atelier bien posé : on solidifie d’abord la structure utile, puis on ouvre les extensions là où elles apportent un vrai retour terrain ou commercial.
+                Une bonne donnée terrain dépend autant de la préparation que du vol. Cartotrac privilégie un cadrage précis, une acquisition maîtrisée et des livrables adaptés à l’usage attendu.
               </Typography>
             </Stack>
           </Grid>

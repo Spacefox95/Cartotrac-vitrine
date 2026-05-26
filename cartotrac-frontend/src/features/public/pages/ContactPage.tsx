@@ -8,28 +8,28 @@ const channels = [
   {
     title: 'Email',
     value: 'contact@cartotrac.fr',
-    description: 'Le meilleur point d’entrée pour partager un contexte, une adresse ou un besoin un peu détaillé.',
+    description: 'Le meilleur point d’entrée pour transmettre une localisation, un besoin et les livrables attendus.',
     icon: Email,
   },
   {
     title: 'Téléphone',
     value: '06 00 00 00 00',
-    description: 'Pratique pour un premier cadrage rapide ou une demande simple.',
+    description: 'Pratique pour cadrer rapidement une mission drone ou une contrainte terrain.',
     icon: Phone,
   },
   {
     title: 'Zone d’intervention',
     value: 'Tarn, Occitanie et interventions élargies selon mission',
-    description: 'Le périmètre peut s’adapter selon le type d’accompagnement ou d’outil souhaité.',
+    description: 'Le périmètre peut s’adapter selon le type de mission et les livrables demandés.',
     icon: Place,
   },
 ];
 
 const topics = [
-  'Préparer un flux devis plus cohérent à partir d’une adresse ou d’une parcelle',
-  'Qualifier plus vite un chantier toiture, façade ou emprise à traiter',
-  'Mettre en place un socle léger entre vitrine, prospection et gestion interne',
-  'Étendre ensuite l’outil vers d’autres modules métier',
+  'Inspecter une toiture, une façade, un ouvrage ou une zone difficile d’accès',
+  'Produire une orthophoto, un MNE/MNT, un plan topographique ou un modèle 3D',
+  'Calculer des volumes pour une carrière, un stock ou un terrassement',
+  'Documenter une parcelle agricole, un site patrimonial ou un existant architectural',
 ];
 
 const ContactPage = () => {
@@ -37,23 +37,23 @@ const ContactPage = () => {
     <Stack spacing={4.5}>
       <HeroSection
         eyebrow="Contact"
-        title="Parlons d’un besoin réel, pas d’un vague projet logiciel."
-        description="Le plus utile pour commencer est de partir d’un cas concret : une adresse à qualifier, un cycle devis à fluidifier, un flux terrain à clarifier ou une activité à structurer. Cela permet de voir immédiatement si Cartotrac est la bonne base et par où démarrer."
+        title="Parlons de votre site, de vos contraintes et du livrable attendu."
+        description="Pour cadrer une mission, quelques éléments suffisent : localisation, objectif, surface concernée, niveau de précision souhaité, délai et format de restitution."
         primaryCta={{ label: 'Demander un devis', to: '/demande-devis' }}
         secondaryCta={{ label: 'Voir les services', to: '/services' }}
-        highlights={['Réponse claire', 'Contexte métier', 'Cas concret', 'Premier cadrage']}
+        highlights={['Réponse claire', 'Contexte terrain', 'Livrables utiles', 'Premier cadrage']}
         cards={[
           {
-            title: 'Besoin opérationnel',
-            description: 'Nous pouvons partir d’un usage simple et immédiat pour éviter les cadrages trop abstraits.',
+            title: 'Inspection',
+            description: 'Toiture, façade, bâtiment, ouvrage ou zone difficilement accessible.',
           },
           {
-            title: 'Besoin produit',
-            description: 'Le contact peut aussi servir à discuter d’une trajectoire d’outil interne plus large.',
+            title: 'Relevé',
+            description: 'Topographie, orthophoto, modèle numérique, plan ou mesure de volumes.',
           },
           {
-            title: 'Besoin commercial',
-            description: 'Site vitrine, demandes entrantes et devis peuvent être pensés comme une seule chaîne.',
+            title: 'Documentation',
+            description: 'Supports visuels et 3D pour architecture, patrimoine, agriculture ou suivi de site.',
           },
         ]}
       />
@@ -96,8 +96,8 @@ const ContactPage = () => {
             <Stack spacing={1.5}>
               <ScheduleSend sx={{ color: 'primary.main' }} />
               <Typography variant="h3">Pour un premier message utile</Typography>
-              <Typography color="text.secondary">Partagez simplement l’adresse ou la zone concernée, le type de besoin et le délai visé. Cela suffit pour cadrer la suite.</Typography>
-              <Typography color="text.secondary">Si vous n’avez pas encore tous les éléments, ce n’est pas bloquant. L’échange sert aussi à les faire émerger proprement.</Typography>
+              <Typography color="text.secondary">Partagez l’adresse ou la zone concernée, le type de mission, les livrables souhaités et le délai visé.</Typography>
+              <Typography color="text.secondary">Si vous n’avez pas encore tous les éléments techniques, ce n’est pas bloquant. L’échange sert justement à les préciser.</Typography>
             </Stack>
           </Paper>
         </Grid>

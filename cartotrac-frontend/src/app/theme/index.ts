@@ -38,7 +38,7 @@ const theme = createTheme({
           boxShadow: 'none',
         },
         contained: {
-          background: 'linear-gradient(135deg, #55606f 0%, #6d7887 100%)',
+          background: 'linear-gradient(135deg, #fca46d 0%, #ffa51f 100%)',
           boxShadow: '0 12px 24px rgba(85, 96, 111, 0.16)',
         },
         outlined: {

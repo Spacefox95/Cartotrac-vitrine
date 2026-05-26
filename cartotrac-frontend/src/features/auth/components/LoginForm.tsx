@@ -41,7 +41,7 @@ const LoginForm = () => {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 2 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 1.5 }}>
       {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
       <TextField
         label="Email"
@@ -49,6 +49,7 @@ const LoginForm = () => {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         fullWidth
+        size="small"
       />
       <TextField
         label="Mot de passe"
@@ -56,11 +57,12 @@ const LoginForm = () => {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         fullWidth
+        size="small"
       />
       <Button type="submit" variant="contained" disabled={isSubmitting}>
         {isSubmitting ? 'Connexion...' : 'Se connecter'}
       </Button>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.9rem', lineHeight: 1.45 }}>
         La connexion conserve un jeton technique dans votre navigateur pour maintenir la session. Plus d’informations dans la
         {' '}
         <Link component={RouterLink} to="/confidentialite" underline="hover">
