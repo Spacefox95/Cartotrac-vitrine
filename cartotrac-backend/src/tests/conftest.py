@@ -11,10 +11,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from src.core.database import get_database
 from src.core.security import create_access_token, get_password_hash
 from src.db.base import Base
-from src.domains.clients.models import Client
-from src.domains.dashboard.models import DashboardEvent, DashboardNotification, DashboardTask
-from src.domains.quotes.models import Quote
-from src.domains.users.models import User
+from src.db.models.clients import Client
+from src.db.models.dashboard import DashboardEvent, DashboardNotification, DashboardTask
+from src.db.models.quote_requests import QuoteRequest
+from src.db.models.quotes import Quote
+from src.db.models.users import User
 from src.main import app
 
 TEST_DATABASE_PATH = Path('/tmp/cartotrac_rbac_test.sqlite3')
@@ -140,14 +141,6 @@ def seeded_data(db_session: Session) -> dict[str, object]:
         total_ht=200,
         total_ttc=240,
     )
-    task = DashboardTask(
-        title='Relancer Q-001',
-        description='Confirmer la validation du devis Q-001.',
-        due_at=now + timedelta(hours=2),
-        status='in_progress',
-        priority='high',
-        progress=55,
-    )
     event = DashboardEvent(
         title='Revue commerciale',
         description='Point equipe autour des devis ouverts.',
@@ -168,10 +161,25 @@ def seeded_data(db_session: Session) -> dict[str, object]:
         is_read=False,
         created_at=now - timedelta(minutes=30),
     )
-    db_session.add_all([quote, second_quote, task, event, notification])
+    db_session.add_all([quote, second_quote])
     db_session.commit()
     db_session.refresh(quote)
     db_session.refresh(second_quote)
+
+    task = DashboardTask(
+        title='Relancer Q-001',
+        description='Confirmer la validation du devis Q-001.',
+        due_at=now + timedelta(hours=2),
+        status='in_progress',
+        priority='high',
+        progress=55,
+        assigned_user_id=sales.id,
+        client_id=seeded_client.id,
+        quote_id=quote.id,
+    )
+
+    db_session.add_all([task, event, notification])
+    db_session.commit()
     db_session.refresh(task)
     db_session.refresh(event)
     db_session.refresh(notification)

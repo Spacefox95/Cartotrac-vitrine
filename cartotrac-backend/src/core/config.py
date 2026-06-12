@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     secret_key: str = 'change-me'
     bcrypt_rounds: int = 12
     access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 14
     quote_validity_days: int = 30
     quote_pdf_company_name: str = 'Cartotrac'
     quote_pdf_company_address: str = 'Cartotrac, France'

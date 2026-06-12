@@ -22,11 +22,13 @@ import type { LeafletMouseEvent, Layer } from 'leaflet';
 import type { Feature as GeoJsonFeature } from 'geojson';
 import 'leaflet/dist/leaflet.css';
 
+import { useAppDispatch } from 'app/store/hooks';
 import {
-  fetchAddressSuggestionsRequest,
-  reverseGeocodeAddressRequest,
-  searchCadastreRequest,
-} from '../api/cadastreApi';
+  fetchAddressSuggestions,
+  reverseGeocodeAddress,
+  searchCadastre,
+} from 'app/store/thunks/cadastreThunks';
+import { fetchQuote } from 'app/store/thunks/quotesThunks';
 import type {
   AddressSuggestion,
   CadastreFeature,
@@ -35,7 +37,6 @@ import type {
   CadastreSearchResponse,
   Position,
 } from '../types/cadastre.types';
-import { fetchQuoteRequest } from 'features/quotes/api/quotesApi';
 
 import { createCadastrePreviewSvg, saveCadastreQuoteDraft } from '../utils/cadastreQuoteDraft';
 
@@ -75,6 +76,7 @@ const initialValues: SearchFormState = {
 };
 
 const CadastrePage = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetQuoteId = Number(searchParams.get('quoteId'));
@@ -154,7 +156,7 @@ const CadastrePage = () => {
 
     const loadTargetQuote = async () => {
       try {
-        const response = await fetchQuoteRequest(targetQuoteId);
+        const response = await dispatch(fetchQuote(targetQuoteId));
 
         if (!isCancelled) {
           setTargetQuoteReference(response.reference);
@@ -171,7 +173,7 @@ const CadastrePage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [hasTargetQuote, targetQuoteId]);
+  }, [dispatch, hasTargetQuote, targetQuoteId]);
 
   useEffect(() => {
     if (mapClickPoint === null || selectedAddress !== null) {
@@ -183,7 +185,9 @@ const CadastrePage = () => {
 
     const loadManualAddressLabel = async () => {
       try {
-        const response = await reverseGeocodeAddressRequest(mapClickPoint[0], mapClickPoint[1]);
+        const response = await dispatch(
+          reverseGeocodeAddress({ lon: mapClickPoint[0], lat: mapClickPoint[1] }),
+        );
 
         if (!isCancelled) {
           setManualAddressLabel(
@@ -202,7 +206,7 @@ const CadastrePage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [mapClickPoint, selectedAddress]);
+  }, [dispatch, mapClickPoint, selectedAddress]);
 
   useEffect(() => {
     const trimmedQuery = addressQuery.trim();
@@ -217,7 +221,7 @@ const CadastrePage = () => {
       try {
         setIsAutocompleteLoading(true);
         setAutocompleteError(null);
-        const response = await fetchAddressSuggestionsRequest(trimmedQuery);
+        const response = await dispatch(fetchAddressSuggestions({ query: trimmedQuery }));
         setAddressOptions(response.items);
       } catch (error) {
         setAutocompleteError(extractErrorMessage(error));
@@ -229,7 +233,7 @@ const CadastrePage = () => {
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [addressQuery]);
+  }, [addressQuery, dispatch]);
 
 
 
@@ -315,7 +319,7 @@ const CadastrePage = () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const response = await searchCadastreRequest(searchParams);
+      const response = await dispatch(searchCadastre(searchParams));
       setResult(response);
       setSelectedFeatureIndices([
         findRecommendedFeatureIndex(response.geojson.features, activePoint) ?? 0,

@@ -1,0 +1,49 @@
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.db.base import Base
+
+
+class DashboardTask(Base):
+    __tablename__ = 'dashboard_tasks'
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    due_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default='todo', nullable=False)
+    priority: Mapped[str] = mapped_column(String(50), default='medium', nullable=False)
+    progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    assigned_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    client_id: Mapped[int | None] = mapped_column(ForeignKey('clients.id'), nullable=True)
+    quote_id: Mapped[int | None] = mapped_column(ForeignKey('quotes.id'), nullable=True)
+
+
+class DashboardEvent(Base):
+    __tablename__ = 'dashboard_events'
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    category: Mapped[str] = mapped_column(String(50), default='meeting', nullable=False)
+    assigned_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    meeting_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class DashboardNotification(Base):
+    __tablename__ = 'dashboard_notifications'
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    sender: Mapped[str] = mapped_column(String(255), nullable=False)
+    sender_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    recipient_user_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default='general', nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

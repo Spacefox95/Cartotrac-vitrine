@@ -11,17 +11,17 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from 'app/store/hooks';
+import { deleteQuote, fetchQuotes } from 'app/store/thunks/quotesThunks';
 
-import { deleteQuoteRequest } from '../api/quotesApi';
 import QuoteTable from '../components/QuoteTable';
-import { fetchQuotes } from '../store/quotesSlice';
 
 const QuotesListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, total, isLoading, errorMessage } = useAppSelector(
+  const { items, total, status, errorMessage } = useAppSelector(
     (state) => state.quotes,
   );
+  const isLoading = status === 'loading';
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -42,8 +42,8 @@ const QuotesListPage = () => {
     try {
       setIsDeleting(true);
       setActionError(null);
-      await deleteQuoteRequest(quoteId);
-      await dispatch(fetchQuotes(search)).unwrap();
+      await dispatch(deleteQuote(quoteId));
+      await dispatch(fetchQuotes(search));
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       setActionError(message || 'Suppression impossible pour le moment.');

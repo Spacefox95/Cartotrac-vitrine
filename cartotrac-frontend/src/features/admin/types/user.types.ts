@@ -1,29 +1,6 @@
-import type { UserRole } from 'shared/auth/permissions';
+import type { components } from 'shared/api/generated/schema';
 
-export type AdminUser = {
-  id: number;
-  email: string;
-  full_name: string | null;
-  role: UserRole;
-  permissions: string[];
-  is_admin: boolean;
-};
-
-export type AdminUserPayload = {
-  email: string;
-  full_name: string;
-  password: string;
-  role: UserRole;
-};
-
-export type AdminUserUpdatePayload = {
-  email: string;
-  full_name: string;
-  password: string;
-  role: UserRole;
-};
-
-export type AdminUsersListResponse = {
-  items: AdminUser[];
-  total: number;
-};
+export type AdminUser = components['schemas']['UserRead'];
+export type AdminUserPayload = components['schemas']['UserCreate'];
+export type AdminUserUpdatePayload = components['schemas']['UserUpdate'];
+export type AdminUsersListResponse = components['schemas']['UserListResponse'];

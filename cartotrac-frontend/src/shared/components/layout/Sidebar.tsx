@@ -2,7 +2,7 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from 'app/store/hooks';
-import { logout } from 'features/auth/store/authSlice';
+import { logout } from 'app/store/thunks/authThunks';
 import { hasPermission } from 'shared/auth/permissions';
 
 const Sidebar = () => {
@@ -10,23 +10,28 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector((state) => state.auth.currentUser);
-  const canManage = hasPermission(currentUser?.permissions, 'users:manage');
+  const canManageUsers = hasPermission(currentUser?.permissions, 'users:manage');
+  const canManageDashboard = hasPermission(currentUser?.permissions, 'dashboard:manage');
 
   const navItems = [
     { to: '/app/dashboard', label: 'Dashboard' },
     { to: '/app/cadastre', label: 'Cadastre' },
     { to: '/app/clients', label: 'Clients' },
     { to: '/app/quotes', label: 'Devis' },
-    ...(canManage
+    ...(canManageUsers
       ? [
           { to: '/app/admin/users', label: 'Utilisateurs' },
+        ]
+      : []),
+    ...(canManageDashboard
+      ? [
           { to: '/app/admin/dashboard', label: 'Contenu dashboard' },
         ]
       : []),
   ];
 
   const handleLogout = () => {
-    dispatch(logout());
+    void dispatch(logout());
     navigate('/login');
   };
 

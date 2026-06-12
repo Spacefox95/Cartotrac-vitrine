@@ -1,8 +1,7 @@
 import { PropsWithChildren, useEffect } from 'react';
 
 import { useAppDispatch, useAppSelector } from 'app/store/hooks';
-
-import { bootstrapSession } from '../store/authSlice';
+import { bootstrapSession } from 'app/store/thunks/authThunks';
 
 const AuthBootstrap = ({ children }: PropsWithChildren) => {
   const dispatch = useAppDispatch();

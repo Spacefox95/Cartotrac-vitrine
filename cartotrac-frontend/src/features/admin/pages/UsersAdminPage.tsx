@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -19,15 +19,15 @@ import {
   Typography,
 } from '@mui/material';
 
-import { useAppSelector } from 'app/store/hooks';
+import { useAppDispatch, useAppSelector } from 'app/store/hooks';
+import {
+  createUser,
+  deleteUser,
+  fetchUsers,
+  updateUser,
+} from 'app/store/thunks/adminThunks';
 import { ROLE_LABELS } from 'shared/auth/permissions';
 
-import {
-  createUserRequest,
-  deleteUserRequest,
-  fetchUsersRequest,
-  updateUserRequest,
-} from '../api/usersApi';
 import UserForm from '../components/UserForm';
 import type { AdminUser, AdminUserPayload } from '../types/user.types';
 
@@ -39,6 +39,7 @@ const emptyUser: AdminUserPayload = {
 };
 
 const UsersAdminPage = () => {
+  const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth.currentUser);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,22 +48,22 @@ const UsersAdminPage = () => {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const response = await fetchUsersRequest();
+      const response = await dispatch(fetchUsers());
       setUsers(response.items);
     } catch {
       setErrorMessage('Impossible de charger les utilisateurs.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     void loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   const initialValues = useMemo<AdminUserPayload>(() => {
     if (selectedUser === null) {
@@ -81,7 +82,7 @@ const UsersAdminPage = () => {
     try {
       setIsSubmitting(true);
       setErrorMessage(null);
-      await createUserRequest(values);
+      await dispatch(createUser(values));
       setDialogMode(null);
       setSelectedUser(null);
       await loadUsers();
@@ -100,7 +101,7 @@ const UsersAdminPage = () => {
     try {
       setIsSubmitting(true);
       setErrorMessage(null);
-      await updateUserRequest(selectedUser.id, values);
+      await dispatch(updateUser({ userId: selectedUser.id, payload: values }));
       setDialogMode(null);
       setSelectedUser(null);
       await loadUsers();
@@ -120,7 +121,7 @@ const UsersAdminPage = () => {
 
     try {
       setErrorMessage(null);
-      await deleteUserRequest(user.id);
+      await dispatch(deleteUser(user.id));
       await loadUsers();
     } catch {
       setErrorMessage('Suppression impossible pour le moment.');
@@ -179,7 +180,7 @@ const UsersAdminPage = () => {
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                      {user.permissions.map((permission) => (
+                      {(user.permissions ?? []).map((permission) => (
                         <Chip key={permission} size="small" variant="outlined" label={permission} />
                       ))}
                     </Stack>

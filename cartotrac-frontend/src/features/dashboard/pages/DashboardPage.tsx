@@ -4,6 +4,8 @@ import {
   CalendarMonth,
   Campaign,
   ChatBubbleOutline,
+  ChevronLeft,
+  ChevronRight,
   DescriptionOutlined,
   EventAvailable,
   NorthEast,
@@ -23,6 +25,7 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
+  IconButton,
   LinearProgress,
   Link,
   MenuItem,
@@ -33,20 +36,21 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
-import { useAppSelector } from 'app/store/hooks';
-import { createDashboardEventRequest } from 'features/admin/api/dashboardAdminApi';
-import { fetchUsersRequest } from 'features/admin/api/usersApi';
+import { useAppDispatch, useAppSelector } from 'app/store/hooks';
+import { fetchUsers } from 'app/store/thunks/adminThunks';
+import {
+  createDashboardCalendarEvent,
+  fetchDashboard,
+  fetchDashboardEvents,
+  fetchDashboardMessages,
+  fetchDashboardMessaging,
+  markDashboardMessageRead,
+  sendDashboardMessage,
+} from 'app/store/thunks/dashboardThunks';
 import type { AdminDashboardEventPayload } from 'features/admin/types/dashboardAdmin.types';
 import type { AdminUser } from 'features/admin/types/user.types';
 import { hasPermission } from 'shared/auth/permissions';
 
-import {
-  fetchDashboardMessageContactsRequest,
-  fetchDashboardMessagesRequest,
-  getDashboardRequest,
-  markDashboardMessageReadRequest,
-  sendDashboardMessageRequest,
-} from '../api/dashboard.api';
 import { DashboardStatCard } from '../components/DashboardCards';
 import type {
   DashboardEvent,
@@ -106,6 +110,7 @@ const emptyMessageDraft: DashboardMessageCreatePayload = {
 };
 
 const DashboardPage = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const currentUser = useAppSelector((state) => state.auth.currentUser);
   const firstName = currentUser?.full_name?.split(' ')[0] ?? 'Equipe';
@@ -115,8 +120,16 @@ const DashboardPage = () => {
 
   const canWriteQuotes = hasPermission(currentUser?.permissions, 'quotes:write');
   const canWriteClients = hasPermission(currentUser?.permissions, 'clients:write');
-  const canManageDashboard = hasPermission(currentUser?.permissions, 'users:manage');
+  const canManageDashboard = hasPermission(currentUser?.permissions, 'dashboard:manage');
+  const [visibleCalendarMonth, setVisibleCalendarMonth] = useState(() => {
+    const today = new Date();
+    return {
+      year: today.getFullYear(),
+      month: today.getMonth() + 1,
+    };
+  });
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<DashboardEvent[] | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [isEventSubmitting, setIsEventSubmitting] = useState(false);
@@ -180,7 +193,7 @@ const DashboardPage = () => {
       try {
         setIsLoading(true);
         setErrorMessage(null);
-        const response = await getDashboardRequest();
+        const response = await dispatch(fetchDashboard());
 
         if (isMounted) {
           setDashboard(response);
@@ -201,50 +214,53 @@ const DashboardPage = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (canManageDashboard === false) {
+      setCalendarEvents(null);
       return;
     }
 
     let isMounted = true;
 
-    const loadUsers = async () => {
+    const loadAdminDashboardData = async () => {
       try {
-        const response = await fetchUsersRequest();
+        const [usersResponse, eventsResponse] = await Promise.all([
+          dispatch(fetchUsers()),
+          dispatch(fetchDashboardEvents()),
+        ]);
         if (isMounted) {
-          setUsers(response.items);
+          setUsers(usersResponse.items);
+          setCalendarEvents(eventsResponse);
         }
       } catch {
         if (isMounted) {
           setUsers([]);
+          setCalendarEvents(null);
         }
       }
     };
 
-    void loadUsers();
+    void loadAdminDashboardData();
 
     return () => {
       isMounted = false;
     };
-  }, [canManageDashboard]);
+  }, [canManageDashboard, dispatch]);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadMessaging = async () => {
       try {
-        const [contactsResponse, messagesResponse] = await Promise.all([
-          fetchDashboardMessageContactsRequest(),
-          fetchDashboardMessagesRequest(),
-        ]);
+        const response = await dispatch(fetchDashboardMessaging());
         if (isMounted) {
-          setMessageContacts(contactsResponse.items);
-          setMessages(messagesResponse);
+          setMessageContacts(response.contacts.items);
+          setMessages(response.messages);
           setMessageDraft((current) => ({
             ...current,
-            recipient_user_id: current.recipient_user_id || contactsResponse.items[0]?.id || 0,
+            recipient_user_id: current.recipient_user_id || response.contacts.items[0]?.id || 0,
           }));
         }
       } catch {
@@ -260,23 +276,23 @@ const DashboardPage = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [dispatch]);
 
   const calendarDays = useMemo(() => {
     if (dashboard === null) {
       return [] as Array<number | null>;
     }
 
-    const firstDay = new Date(dashboard.calendar.year, dashboard.calendar.month - 1, 1);
+    const firstDay = new Date(visibleCalendarMonth.year, visibleCalendarMonth.month - 1, 1);
     const jsWeekDay = firstDay.getDay();
     const mondayFirstOffset = (jsWeekDay + 6) % 7;
-    const daysInMonth = new Date(dashboard.calendar.year, dashboard.calendar.month, 0).getDate();
+    const daysInMonth = new Date(visibleCalendarMonth.year, visibleCalendarMonth.month, 0).getDate();
 
     return [
       ...Array.from({ length: mondayFirstOffset }, () => null),
       ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
     ];
-  }, [dashboard]);
+  }, [dashboard, visibleCalendarMonth.month, visibleCalendarMonth.year]);
 
   const summary = dashboard?.summary ?? {
     clients_total: 0,
@@ -295,10 +311,14 @@ const DashboardPage = () => {
     highlighted_days: [],
   };
   const tasks = dashboard?.tasks ?? emptyTasks;
-  const events = dashboard?.events ?? emptyEvents;
+  const events = calendarEvents ?? dashboard?.events ?? emptyEvents;
   const notifications = dashboard?.notifications ?? emptyNotifications;
   const recentQuotes = dashboard?.recent_quotes ?? emptyRecentQuotes;
-  const monthLabel = monthNames[calendar.month - 1] + ' ' + String(calendar.year);
+  const monthLabel = monthNames[visibleCalendarMonth.month - 1] + ' ' + String(visibleCalendarMonth.year);
+  const visibleToday =
+    visibleCalendarMonth.year === calendar.year && visibleCalendarMonth.month === calendar.month
+      ? calendar.today
+      : null;
 
   const eventsByDay = useMemo(() => {
     const grouped = new Map<number, DashboardEvent[]>();
@@ -306,7 +326,8 @@ const DashboardPage = () => {
     for (const event of events) {
       const eventDate = new Date(event.starts_at);
       const isSameMonth =
-        eventDate.getFullYear() === calendar.year && eventDate.getMonth() === calendar.month - 1;
+        eventDate.getFullYear() === visibleCalendarMonth.year &&
+        eventDate.getMonth() === visibleCalendarMonth.month - 1;
 
       if (isSameMonth === false) {
         continue;
@@ -319,24 +340,20 @@ const DashboardPage = () => {
     }
 
     return grouped;
-  }, [calendar.month, calendar.year, events]);
+  }, [events, visibleCalendarMonth.month, visibleCalendarMonth.year]);
 
   useEffect(() => {
-    const preferredDay =
-      (selectedCalendarDay !== null && eventsByDay.has(selectedCalendarDay)) || selectedCalendarDay === calendar.today
-        ? selectedCalendarDay
-        : null;
-
-    if (preferredDay !== null) {
+    if (selectedCalendarDay !== null) {
       return;
     }
 
-    const nextDay = eventsByDay.has(calendar.today)
-      ? calendar.today
-      : (Array.from(eventsByDay.keys()).sort((left, right) => left - right)[0] ?? calendar.today);
+    const nextDay =
+      visibleToday !== null && eventsByDay.has(visibleToday)
+        ? visibleToday
+        : (Array.from(eventsByDay.keys()).sort((left, right) => left - right)[0] ?? visibleToday ?? 1);
 
     setSelectedCalendarDay(nextDay);
-  }, [calendar.today, eventsByDay, selectedCalendarDay]);
+  }, [eventsByDay, selectedCalendarDay, visibleToday]);
 
   const selectedDayEvents = useMemo(() => {
     if (selectedCalendarDay === null) {
@@ -353,7 +370,7 @@ const DashboardPage = () => {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
-        }).format(new Date(calendar.year, calendar.month - 1, selectedCalendarDay));
+        }).format(new Date(visibleCalendarMonth.year, visibleCalendarMonth.month - 1, selectedCalendarDay));
 
   const conversationSummaries = useMemo(() => {
     return messageContacts
@@ -428,7 +445,7 @@ const DashboardPage = () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const response = await getDashboardRequest();
+      const response = await dispatch(fetchDashboard());
       setDashboard(response);
     } catch {
       setErrorMessage('Impossible de charger le tableau de bord pour le moment.');
@@ -439,15 +456,28 @@ const DashboardPage = () => {
 
   const loadMessages = async () => {
     try {
-      const response = await fetchDashboardMessagesRequest();
+      const response = await dispatch(fetchDashboardMessages());
       setMessages(response);
     } catch {
       setErrorMessage('Impossible de charger la messagerie pour le moment.');
     }
   };
 
+  const loadCalendarEvents = async () => {
+    if (canManageDashboard === false) {
+      return;
+    }
+
+    try {
+      const response = await dispatch(fetchDashboardEvents());
+      setCalendarEvents(response);
+    } catch {
+      setErrorMessage('Impossible de charger les événements du calendrier pour le moment.');
+    }
+  };
+
   const openEventDialogForDay = (day: number) => {
-    const startDate = new Date(calendar.year, calendar.month - 1, day, 9, 0, 0, 0);
+    const startDate = new Date(visibleCalendarMonth.year, visibleCalendarMonth.month - 1, day, 9, 0, 0, 0);
     const endDate = new Date(startDate);
     endDate.setMinutes(endDate.getMinutes() + 45);
 
@@ -460,17 +490,46 @@ const DashboardPage = () => {
     setIsEventDialogOpen(true);
   };
 
+  const handlePreviousMonth = () => {
+    setSelectedCalendarDay(null);
+    setVisibleCalendarMonth((current) => {
+      const date = new Date(current.year, current.month - 2, 1);
+      return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+      };
+    });
+  };
+
+  const handleNextMonth = () => {
+    setSelectedCalendarDay(null);
+    setVisibleCalendarMonth((current) => {
+      const date = new Date(current.year, current.month, 1);
+      return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+      };
+    });
+  };
+
   const handleCalendarDayClick = (day: number | null) => {
     if (day === null) {
       return;
     }
 
     setSelectedCalendarDay(day);
+  };
+
+  const handleCalendarDayDoubleClick = (day: number | null) => {
+    if (day === null) {
+      return;
+    }
 
     if (canManageDashboard === false) {
       return;
     }
 
+    setSelectedCalendarDay(day);
     openEventDialogForDay(day);
   };
 
@@ -478,13 +537,13 @@ const DashboardPage = () => {
     try {
       setIsEventSubmitting(true);
       setEventSubmitError(null);
-      await createDashboardEventRequest({
+      await dispatch(createDashboardCalendarEvent({
         ...eventDraft,
         starts_at: new Date(eventDraft.starts_at).toISOString(),
         ends_at: eventDraft.ends_at ? new Date(eventDraft.ends_at).toISOString() : '',
-      });
+      }));
       setIsEventDialogOpen(false);
-      await loadDashboard();
+      await Promise.all([loadDashboard(), loadCalendarEvents()]);
     } catch {
       setEventSubmitError("Impossible d'enregistrer cet événement pour le moment.");
     } finally {
@@ -505,7 +564,7 @@ const DashboardPage = () => {
     try {
       setIsMessageSubmitting(true);
       setMessageSubmitError(null);
-      await sendDashboardMessageRequest(messageDraft);
+      await dispatch(sendDashboardMessage(messageDraft));
       setIsMessageDialogOpen(false);
       await Promise.all([loadDashboard(), loadMessages()]);
     } catch {
@@ -517,7 +576,7 @@ const DashboardPage = () => {
 
   const handleMarkMessageRead = async (messageId: number) => {
     try {
-      await markDashboardMessageReadRequest(messageId);
+      await dispatch(markDashboardMessageRead(messageId));
       await Promise.all([loadDashboard(), loadMessages()]);
     } catch {
       setErrorMessage('Impossible de mettre ce message à jour.');
@@ -688,12 +747,19 @@ const DashboardPage = () => {
             }}
           >
             <Stack spacing={2.5}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1.5}>
                 <Box>
                   <Typography variant="h5">Calendrier</Typography>
                   <Typography color="text.secondary">{monthLabel}</Typography>
                 </Box>
-                <Chip icon={<CalendarMonth />} label={String(events.length) + ' à venir'} variant="outlined" />
+                <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ xs: 'space-between', sm: 'flex-end' }}>
+                  <IconButton aria-label="Mois précédent" onClick={handlePreviousMonth} size="small">
+                    <ChevronLeft />
+                  </IconButton>
+                  <IconButton aria-label="Mois suivant" onClick={handleNextMonth} size="small">
+                    <ChevronRight />
+                  </IconButton>
+                </Stack>
               </Stack>
 
               <Grid container columns={7} spacing={1}>
@@ -705,8 +771,8 @@ const DashboardPage = () => {
                   </Grid>
                 ))}
                 {calendarDays.map((day, index) => {
-                  const isToday = day === calendar.today;
-                  const hasEvent = day !== null && calendar.highlighted_days.includes(day);
+                  const isToday = day !== null && day === visibleToday;
+                  const hasEvent = day !== null && eventsByDay.has(day);
                   const isSelected = day !== null && day === selectedCalendarDay;
 
                   return (
@@ -714,6 +780,7 @@ const DashboardPage = () => {
                       <ButtonBase
                         disabled={day === null}
                         onClick={() => handleCalendarDayClick(day)}
+                        onDoubleClick={() => handleCalendarDayDoubleClick(day)}
                         sx={{
                           width: '100%',
                           aspectRatio: '1 / 1',
@@ -772,7 +839,7 @@ const DashboardPage = () => {
                   >
                     <Typography fontWeight={700}>Aucun événement planifié</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Sélectionnez un autre jour ou cliquez sur une date pour programmer un rendez-vous.
+                      Sélectionnez un autre jour ou double-cliquez sur une date pour programmer un rendez-vous.
                     </Typography>
                   </Paper>
                 )}
@@ -1322,6 +1389,13 @@ const TaskCard = ({ task }: TaskCardProps) => {
         <Typography variant="body2" color="text.secondary">
           {task.description ?? 'Tache sans detail complementaire.'}
         </Typography>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {task.assigned_user_name ? (
+            <Chip label={'Assignée : ' + task.assigned_user_name} size="small" variant="outlined" />
+          ) : null}
+          {task.client_name ? <Chip label={'Client : ' + task.client_name} size="small" variant="outlined" /> : null}
+          {task.quote_reference ? <Chip label={'Devis : ' + task.quote_reference} size="small" variant="outlined" /> : null}
+        </Stack>
         <Stack direction="row" justifyContent="space-between" spacing={2}>
           <Typography variant="body2" color="text.secondary">
             {formatDateTime(task.due_at)}

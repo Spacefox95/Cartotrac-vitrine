@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -25,21 +25,22 @@ import {
 } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 
+import { useAppDispatch } from 'app/store/hooks';
 import {
-  createDashboardEventRequest,
-  createDashboardNotificationRequest,
-  createDashboardTaskRequest,
-  deleteDashboardEventRequest,
-  deleteDashboardNotificationRequest,
-  deleteDashboardTaskRequest,
-  fetchDashboardEventsRequest,
-  fetchDashboardNotificationsRequest,
-  fetchDashboardTasksRequest,
-  updateDashboardEventRequest,
-  updateDashboardNotificationRequest,
-  updateDashboardTaskRequest,
-} from '../api/dashboardAdminApi';
-import { fetchUsersRequest } from '../api/usersApi';
+  createDashboardEvent,
+  createDashboardNotification,
+  createDashboardTask,
+  deleteDashboardEvent,
+  deleteDashboardNotification,
+  deleteDashboardTask,
+  fetchDashboardAdminContent,
+  updateDashboardEvent,
+  updateDashboardNotification,
+  updateDashboardTask,
+} from 'app/store/thunks/adminThunks';
+import type { Client } from 'features/clients/types/client.types';
+import type { Quote } from 'features/quotes/types/quote.types';
+
 import type {
   AdminDashboardEvent,
   AdminDashboardEventPayload,
@@ -62,6 +63,9 @@ const emptyTask: AdminDashboardTaskPayload = {
   status: 'todo',
   priority: 'medium',
   progress: 0,
+  assigned_user_id: null,
+  client_id: null,
+  quote_id: null,
 };
 
 const emptyEvent: AdminDashboardEventPayload = {
@@ -106,12 +110,15 @@ const buildEventDraftFromDate = (date: Date): AdminDashboardEventPayload => {
 };
 
 const DashboardContentAdminPage = () => {
+  const dispatch = useAppDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [section, setSection] = useState<SectionKey>(() => getSectionFromParam(searchParams.get('tab')));
   const [tasks, setTasks] = useState<AdminDashboardTask[]>([]);
   const [events, setEvents] = useState<AdminDashboardEvent[]>([]);
   const [notifications, setNotifications] = useState<AdminDashboardNotification[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -163,30 +170,27 @@ const DashboardContentAdminPage = () => {
     setSearchParams({ tab: nextSection }, { replace: true });
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      const [taskResponse, eventResponse, notificationResponse, usersResponse] = await Promise.all([
-        fetchDashboardTasksRequest(),
-        fetchDashboardEventsRequest(),
-        fetchDashboardNotificationsRequest(),
-        fetchUsersRequest(),
-      ]);
-      setTasks(taskResponse.items);
-      setEvents(eventResponse.items);
-      setNotifications(notificationResponse.items);
-      setUsers(usersResponse.items);
+      const response = await dispatch(fetchDashboardAdminContent());
+      setTasks(response.tasks.items);
+      setEvents(response.events.items);
+      setNotifications(response.notifications.items);
+      setUsers(response.users.items);
+      setClients(response.clients.items);
+      setQuotes(response.quotes.items);
     } catch {
       setErrorMessage('Impossible de charger le contenu du dashboard.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   const currentCount = useMemo(() => {
     if (section === 'tasks') {
@@ -220,6 +224,9 @@ const DashboardContentAdminPage = () => {
       status: task.status,
       priority: task.priority,
       progress: task.progress,
+      assigned_user_id: task.assigned_user_id,
+      client_id: task.client_id,
+      quote_id: task.quote_id,
     });
     setIsDialogOpen(true);
   };
@@ -270,9 +277,9 @@ const DashboardContentAdminPage = () => {
           due_at: new Date(taskValues.due_at).toISOString(),
         };
         if (dialogMode === 'create') {
-          await createDashboardTaskRequest(payload);
+          await dispatch(createDashboardTask(payload));
         } else if (selectedTask !== null) {
-          await updateDashboardTaskRequest(selectedTask.id, payload);
+          await dispatch(updateDashboardTask({ taskId: selectedTask.id, payload }));
         }
       }
 
@@ -283,17 +290,22 @@ const DashboardContentAdminPage = () => {
           ends_at: eventValues.ends_at ? new Date(eventValues.ends_at).toISOString() : '',
         };
         if (dialogMode === 'create') {
-          await createDashboardEventRequest(payload);
+          await dispatch(createDashboardEvent(payload));
         } else if (selectedEvent !== null) {
-          await updateDashboardEventRequest(selectedEvent.id, payload);
+          await dispatch(updateDashboardEvent({ eventId: selectedEvent.id, payload }));
         }
       }
 
       if (section === 'notifications') {
         if (dialogMode === 'create') {
-          await createDashboardNotificationRequest(notificationValues);
+          await dispatch(createDashboardNotification(notificationValues));
         } else if (selectedNotification !== null) {
-          await updateDashboardNotificationRequest(selectedNotification.id, notificationValues);
+          await dispatch(
+            updateDashboardNotification({
+              notificationId: selectedNotification.id,
+              payload: notificationValues,
+            }),
+          );
         }
       }
 
@@ -315,13 +327,13 @@ const DashboardContentAdminPage = () => {
     try {
       setErrorMessage(null);
       if (section === 'tasks') {
-        await deleteDashboardTaskRequest(resourceId);
+        await dispatch(deleteDashboardTask(resourceId));
       }
       if (section === 'events') {
-        await deleteDashboardEventRequest(resourceId);
+        await dispatch(deleteDashboardEvent(resourceId));
       }
       if (section === 'notifications') {
-        await deleteDashboardNotificationRequest(resourceId);
+        await dispatch(deleteDashboardNotification(resourceId));
       }
       await loadData();
     } catch {
@@ -366,6 +378,7 @@ const DashboardContentAdminPage = () => {
                 <TableCell>Échéance</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Priorité</TableCell>
+                <TableCell>Rattachement</TableCell>
                 <TableCell>Progression</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
@@ -377,6 +390,7 @@ const DashboardContentAdminPage = () => {
                   <TableCell>{formatDateTime(task.due_at)}</TableCell>
                   <TableCell>{task.status}</TableCell>
                   <TableCell>{task.priority}</TableCell>
+                  <TableCell>{formatTaskAttachment(task)}</TableCell>
                   <TableCell>{task.progress}%</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
@@ -485,6 +499,69 @@ const DashboardContentAdminPage = () => {
                 </Grid>
                 <Grid size={{ xs: 12 }}>
                   <TextField fullWidth multiline minRows={3} label="Description" value={taskValues.description} onChange={(event) => setTaskValues((current) => ({ ...current, description: event.target.value }))} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Assignée à"
+                    value={taskValues.assigned_user_id === null ? '' : String(taskValues.assigned_user_id)}
+                    onChange={(event) =>
+                      setTaskValues((current) => ({
+                        ...current,
+                        assigned_user_id: event.target.value === '' ? null : Number(event.target.value),
+                      }))
+                    }
+                  >
+                    <MenuItem value="">Non assignée</MenuItem>
+                    {users.map((user) => (
+                      <MenuItem key={user.id} value={String(user.id)}>
+                        {(user.full_name ?? user.email) + ' · ' + user.role}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Client lié"
+                    value={taskValues.client_id === null ? '' : String(taskValues.client_id)}
+                    onChange={(event) =>
+                      setTaskValues((current) => ({
+                        ...current,
+                        client_id: event.target.value === '' ? null : Number(event.target.value),
+                      }))
+                    }
+                  >
+                    <MenuItem value="">Aucun client</MenuItem>
+                    {clients.map((client) => (
+                      <MenuItem key={client.id} value={String(client.id)}>
+                        {client.company_name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Devis lié"
+                    value={taskValues.quote_id === null ? '' : String(taskValues.quote_id)}
+                    onChange={(event) =>
+                      setTaskValues((current) => ({
+                        ...current,
+                        quote_id: event.target.value === '' ? null : Number(event.target.value),
+                      }))
+                    }
+                  >
+                    <MenuItem value="">Aucun devis</MenuItem>
+                    {quotes.map((quote) => (
+                      <MenuItem key={quote.id} value={String(quote.id)}>
+                        {quote.reference}
+                      </MenuItem>
+                    ))}
+                  </TextField>
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField select fullWidth label="Statut" value={taskValues.status} onChange={(event) => setTaskValues((current) => ({ ...current, status: event.target.value }))}>
@@ -615,6 +692,16 @@ function formatDateTime(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value));
+}
+
+function formatTaskAttachment(task: AdminDashboardTask) {
+  const labels = [
+    task.assigned_user_name ? 'Assignée: ' + task.assigned_user_name : null,
+    task.client_name ? 'Client: ' + task.client_name : null,
+    task.quote_reference ? 'Devis: ' + task.quote_reference : null,
+  ].filter(Boolean);
+
+  return labels.length > 0 ? labels.join(' · ') : '-';
 }
 
 export default DashboardContentAdminPage;

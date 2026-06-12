@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.db.session import SessionLocal
-from src.domains.users.models import User
+from src.db.models.users import User
 
 CANONICAL_ADMIN_EMAIL = 'admin@cartotrac.com'
 LEGACY_ADMIN_EMAIL = 'admin.local@cartotrac.com'

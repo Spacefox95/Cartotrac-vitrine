@@ -10,7 +10,15 @@ import {
 } from '@mui/material';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { fetchClientsRequest } from 'features/clients/api/clientsApi';
+import { useAppDispatch } from 'app/store/hooks';
+import { fetchClients } from 'app/store/thunks/clientsThunks';
+import {
+  createQuote,
+  deleteQuote,
+  downloadQuotePdf,
+  fetchQuote,
+  updateQuote,
+} from 'app/store/thunks/quotesThunks';
 import type { Client } from 'features/clients/types/client.types';
 import {
   clearCadastreQuoteDraft,
@@ -18,13 +26,6 @@ import {
   type CadastreQuoteDraft,
 } from 'features/cadastre/utils/cadastreQuoteDraft';
 
-import {
-  createQuoteRequest,
-  deleteQuoteRequest,
-  downloadQuotePdfRequest,
-  fetchQuoteRequest,
-  updateQuoteRequest,
-} from '../api/quotesApi';
 import QuoteForm from '../components/QuoteForm';
 import type { Quote, QuotePayload } from '../types/quote.types';
 
@@ -50,6 +51,7 @@ const formatCurrency = (value: string) => {
 };
 
 const QuoteDetailsPage = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -76,10 +78,10 @@ const QuoteDetailsPage = () => {
         setErrorMessage(null);
 
         const [clientsResponse, quoteResponse] = await Promise.all([
-          fetchClientsRequest(),
+          dispatch(fetchClients()),
           isCreate || !Number.isFinite(quoteId)
             ? Promise.resolve(null)
-            : fetchQuoteRequest(quoteId),
+            : dispatch(fetchQuote(quoteId)),
         ]);
 
         if (!isMounted) {
@@ -105,7 +107,7 @@ const QuoteDetailsPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [isCreate, quoteId, shouldApplyCadastreDraft]);
+  }, [dispatch, isCreate, quoteId, shouldApplyCadastreDraft]);
 
   const initialValues = useMemo<QuotePayload>(() => {
     if (!quote) {
@@ -137,8 +139,8 @@ const QuoteDetailsPage = () => {
       setErrorMessage(null);
 
       const response = isCreate
-        ? await createQuoteRequest(values)
-        : await updateQuoteRequest(quoteId, values);
+        ? await dispatch(createQuote(values))
+        : await dispatch(updateQuote({ quoteId, payload: values }));
 
       if (isCreate || cadastreDraft) {
         clearCadastreQuoteDraft();
@@ -167,7 +169,7 @@ const QuoteDetailsPage = () => {
     try {
       setIsSubmitting(true);
       setErrorMessage(null);
-      await deleteQuoteRequest(quote.id);
+      await dispatch(deleteQuote(quote.id));
       navigate('/app/quotes');
     } catch {
       setErrorMessage('Suppression impossible pour le moment.');
@@ -184,7 +186,7 @@ const QuoteDetailsPage = () => {
     try {
       setIsDownloadingPdf(true);
       setErrorMessage(null);
-      const { blob, filename } = await downloadQuotePdfRequest(quote.id);
+      const { blob, filename } = await dispatch(downloadQuotePdf(quote.id));
       const objectUrl = window.URL.createObjectURL(blob);
       const link = window.document.createElement('a');
 

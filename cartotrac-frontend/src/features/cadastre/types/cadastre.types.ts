@@ -1,3 +1,5 @@
+import type { components, paths } from 'shared/api/generated/schema';
+
 export type Position = [number, number];
 
 export type PolygonGeometry = {
@@ -23,45 +25,15 @@ export type CadastreFeatureCollection = {
   features: CadastreFeature[];
 };
 
-export type AddressSuggestion = {
-  label: string;
-  city: string | null;
-  postcode: string | null;
-  citycode: string | null;
-  context: string | null;
-  longitude: number;
-  latitude: number;
-  kind: string | null;
-  score: number | null;
-};
-
-export type AddressAutocompleteResponse = {
-  items: AddressSuggestion[];
-  total: number;
-  source_url: string;
-};
-
-export type AddressReverseGeocodeResponse = {
-  item: AddressSuggestion | null;
-  source_url: string;
-};
-
-export type CadastreSearchParams = {
-  code_insee?: string;
-  code_dep?: string;
-  code_com?: string;
-  nom_com?: string;
-  section?: string;
-  numero?: string;
-  lon?: number;
-  lat?: number;
-  limit?: number;
-};
-
-export type CadastreSearchResponse = {
-  search_kind: 'commune' | 'parcelle';
-  source_url: string;
-  feature_count: number;
+export type AddressSuggestion = components['schemas']['AddressSuggestion'];
+export type AddressAutocompleteResponse = components['schemas']['AddressAutocompleteResponse'];
+export type AddressReverseGeocodeResponse = components['schemas']['AddressReverseGeocodeResponse'];
+export type CadastreSearchResponse = Omit<
+  components['schemas']['CadastreSearchResponse'],
+  'geojson'
+> & {
   geojson: CadastreFeatureCollection;
 };
 
+export type CadastreSearchParams =
+  paths['/api/v1/carto/cadastre/search']['get']['parameters']['query'];

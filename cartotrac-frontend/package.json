@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "generate:openapi": "PYTHONPATH=../cartotrac-backend ../cartotrac-backend/.venv/bin/python ../cartotrac-backend/scripts/export_openapi.py src/shared/api/generated/openapi.json",
+    "generate:api-types": "npm run generate:openapi && openapi-typescript src/shared/api/generated/openapi.json -o src/shared/api/generated/schema.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "check": "tsc --noEmit"
@@ -37,6 +39,7 @@
     "eslint": "^9.34.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "openapi-typescript": "^7.13.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.41.0",
     "vite": "^7.1.3"

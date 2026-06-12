@@ -1,13 +1,16 @@
-import { Email, Phone, Place, ScheduleSend } from '@mui/icons-material';
-import { Grid, Link, Paper, Stack, Typography } from '@mui/material';
+import { FormEvent, useMemo, useState } from 'react';
+import { Email, Phone, Place, ScheduleSend, Send } from '@mui/icons-material';
+import { Alert, Button, Grid, Link, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
 import HeroSection from 'features/public/components/HeroSection';
 
+const CONTACT_EMAIL = 'contact@cartotrac.fr';
+
 const channels = [
   {
     title: 'Email',
-    value: 'contact@cartotrac.fr',
+    value: CONTACT_EMAIL,
     description: 'Le meilleur point d’entrée pour transmettre une localisation, un besoin et les livrables attendus.',
     icon: Email,
   },
@@ -32,7 +35,52 @@ const topics = [
   'Documenter une parcelle agricole, un site patrimonial ou un existant architectural',
 ];
 
+const subjectOptions = [
+  'Demande d’information',
+  'Préparer une mission',
+  'Question sur les services',
+  'Partenariat',
+  'Autre demande',
+];
+
+const initialContactValues = {
+  name: '',
+  email: '',
+  phone: '',
+  company: '',
+  subject: subjectOptions[0],
+  message: '',
+};
+
+type ContactValues = typeof initialContactValues;
+
 const ContactPage = () => {
+  const [values, setValues] = useState<ContactValues>(initialContactValues);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [hasPreparedEmail, setHasPreparedEmail] = useState(false);
+
+  const mailtoHref = useMemo(() => buildMailtoHref(values), [values]);
+
+  const handleChange =
+    (field: keyof ContactValues) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setValues((current) => ({ ...current, [field]: event.target.value }));
+      setErrorMessage(null);
+      setHasPreparedEmail(false);
+    };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!values.name.trim() || !values.email.trim() || !values.message.trim()) {
+      setErrorMessage('Veuillez renseigner votre nom, votre email et votre message.');
+      return;
+    }
+
+    setHasPreparedEmail(true);
+    window.location.href = mailtoHref;
+  };
+
   return (
     <Stack spacing={4.5}>
       <HeroSection
@@ -75,12 +123,65 @@ const ContactPage = () => {
 
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
-            <Stack spacing={1.5}>
-              <Typography variant="h2">Sujets fréquents</Typography>
-              {topics.map((item) => (
-                <Typography key={item} color="text.secondary">• {item}</Typography>
-              ))}
+          <Paper component="form" onSubmit={handleSubmit} sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
+            <Stack spacing={2}>
+              <Stack spacing={0.75}>
+                <Typography variant="h2">Envoyer un message</Typography>
+                <Typography color="text.secondary">
+                  Le formulaire prépare un email adressé à Cartotrac avec les informations nécessaires pour vous répondre.
+                </Typography>
+              </Stack>
+
+              {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+              {hasPreparedEmail ? (
+                <Alert severity="success">
+                  Votre application mail va s’ouvrir avec le message prérempli. Il ne restera plus qu’à l’envoyer.
+                </Alert>
+              ) : null}
+
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Nom *" value={values.name} onChange={handleChange('name')} fullWidth />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Email *" type="email" value={values.email} onChange={handleChange('email')} fullWidth />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Téléphone" value={values.phone} onChange={handleChange('phone')} fullWidth />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Structure / société" value={values.company} onChange={handleChange('company')} fullWidth />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField select label="Sujet" value={values.subject} onChange={handleChange('subject')} fullWidth>
+                    {subjectOptions.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    label="Message *"
+                    value={values.message}
+                    onChange={handleChange('message')}
+                    placeholder="Décrivez votre besoin, la localisation concernée, les délais ou les questions à traiter."
+                    multiline
+                    minRows={6}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                <Button type="submit" variant="contained" endIcon={<Send />}>
+                  Envoyer un email
+                </Button>
+                <Button variant="outlined" component="a" href={mailtoHref}>
+                  Ouvrir dans ma messagerie
+                </Button>
+              </Stack>
             </Stack>
           </Paper>
         </Grid>
@@ -98,6 +199,11 @@ const ContactPage = () => {
               <Typography variant="h3">Pour un premier message utile</Typography>
               <Typography color="text.secondary">Partagez l’adresse ou la zone concernée, le type de mission, les livrables souhaités et le délai visé.</Typography>
               <Typography color="text.secondary">Si vous n’avez pas encore tous les éléments techniques, ce n’est pas bloquant. L’échange sert justement à les préciser.</Typography>
+              <Stack spacing={1}>
+                {topics.map((item) => (
+                  <Typography key={item} color="text.secondary">• {item}</Typography>
+                ))}
+              </Stack>
             </Stack>
           </Paper>
         </Grid>
@@ -127,5 +233,27 @@ const ContactPage = () => {
     </Stack>
   );
 };
+
+function buildMailtoHref(values: ContactValues) {
+  const subject = `Contact Cartotrac - ${values.subject}`;
+  const body = [
+    'Bonjour,',
+    '',
+    'Je souhaite prendre contact avec Cartotrac.',
+    '',
+    `Nom : ${values.name}`,
+    `Email : ${values.email}`,
+    `Téléphone : ${values.phone || 'Non renseigné'}`,
+    `Structure : ${values.company || 'Non renseignée'}`,
+    `Sujet : ${values.subject}`,
+    '',
+    'Message :',
+    values.message,
+    '',
+    'Cordialement,',
+  ].join('\n');
+
+  return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export default ContactPage;

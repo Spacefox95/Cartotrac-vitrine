@@ -5,10 +5,12 @@ from sqlalchemy import engine_from_config, pool
 
 from src.core.config import settings
 from src.db.base import Base
-import src.domains.clients.models  # noqa: F401
-import src.domains.dashboard.models  # noqa: F401
-import src.domains.quotes.models  # noqa: F401
-import src.domains.users.models  # noqa: F401
+import src.db.models.auth  # noqa: F401
+import src.db.models.clients  # noqa: F401
+import src.db.models.dashboard  # noqa: F401
+import src.db.models.quote_requests  # noqa: F401
+import src.db.models.quotes  # noqa: F401
+import src.db.models.users  # noqa: F401
 
 config = context.config
 config.set_main_option('sqlalchemy.url', settings.database_url)

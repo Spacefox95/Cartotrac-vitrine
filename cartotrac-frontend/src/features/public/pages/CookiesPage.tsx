@@ -10,10 +10,10 @@ const CookiesPage = () => {
       duration: 'Jusqu’à déconnexion, expiration du jeton ou suppression manuelle.',
     },
     {
-      title: 'Brouillon de demande cadastre',
+      title: 'Brouillon de demande',
       keyName: 'cartotrac.cadastre.quoteDraft',
       storageType: 'sessionStorage',
-      purpose: 'Éviter la perte d’un brouillon de qualification parcellaire en cours.',
+      purpose: 'Éviter la perte d’un brouillon de demande de mission en cours.',
       duration: 'Pendant la session du navigateur.',
     },
   ];

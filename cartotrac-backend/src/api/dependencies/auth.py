@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from src.core.database import get_database
 from src.core.permissions import get_permissions_for_role, is_admin_role, normalize_role
 from src.core.security import JWTError, decode_access_token
-from src.domains.auth.schemas import CurrentUserResponse
-from src.domains.users.service import UsersService
+from src.schemas.auth import CurrentUserResponse
+from src.managers.users import UsersManager
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -46,7 +46,7 @@ async def get_current_user(
             headers={'WWW-Authenticate': 'Bearer'},
         )
 
-    user = UsersService.get_by_email(db, subject)
+    user = UsersManager.get_by_email(db, subject)
 
     if user is None:
         raise HTTPException(

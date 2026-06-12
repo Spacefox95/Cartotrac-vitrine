@@ -12,6 +12,8 @@ def test_login_and_me_include_role_permissions_and_admin_flag(
 
     assert login_response.status_code == 200
     token = login_response.json()['access_token']
+    refresh_token = login_response.json()['refresh_token']
+    assert refresh_token
 
     me_response = client.get(
         '/api/v1/auth/me',
@@ -25,13 +27,34 @@ def test_login_and_me_include_role_permissions_and_admin_flag(
         'role': 'admin',
         'permissions': [
             'users:manage',
+            'dashboard:read',
+            'dashboard:manage',
+            'messages:read',
+            'messages:write',
+            'carto:read',
             'clients:read',
             'clients:write',
             'quotes:read',
             'quotes:write',
+            'quote_requests:read',
+            'quote_requests:write',
         ],
         'is_admin': True,
     }
+
+    refresh_response = client.post(
+        '/api/v1/auth/refresh',
+        json={'refresh_token': refresh_token},
+    )
+    assert refresh_response.status_code == 200
+    assert refresh_response.json()['access_token'] != token
+    assert refresh_response.json()['refresh_token'] != refresh_token
+
+    reused_refresh_response = client.post(
+        '/api/v1/auth/refresh',
+        json={'refresh_token': refresh_token},
+    )
+    assert reused_refresh_response.status_code == 401
 
 
 def test_users_management_requires_admin_permission(
@@ -123,6 +146,55 @@ def test_sales_can_write_quotes_but_cannot_write_clients(
     assert create_client_response.json() == {'detail': 'Insufficient permissions'}
 
 
+def test_public_quote_request_is_persisted_and_convertible(
+    client: SyncASGIClient,
+    seeded_data: dict[str, object],
+) -> None:
+    create_request_response = client.post(
+        '/api/v1/quote-requests/public',
+        json={
+            'name': 'Claire Martin',
+            'email': 'claire@example.com',
+            'phone': '0611223344',
+            'company': 'Martin Conseil',
+            'service': 'Cadastre & Urbanisme',
+            'location': '12 rue Exemple, Lyon',
+            'deadline': 'Sous 2 semaines',
+            'details': 'Besoin de verifier une parcelle avant depot de dossier.',
+        },
+    )
+
+    assert create_request_response.status_code == 201
+    quote_request = create_request_response.json()
+    assert quote_request['status'] == 'new'
+    assert quote_request['converted_quote_id'] is None
+
+    list_response = client.get(
+        '/api/v1/quote-requests',
+        headers=auth_headers('sales@cartotrac.com'),
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json()['total'] == 1
+
+    convert_response = client.post(
+        f"/api/v1/quote-requests/{quote_request['id']}/convert",
+        headers=auth_headers('sales@cartotrac.com'),
+        json={
+            'reference': 'Q-PUBLIC-001',
+            'status': 'draft',
+            'total_ht': '0',
+            'total_ttc': '0',
+        },
+    )
+
+    assert convert_response.status_code == 201
+    converted = convert_response.json()
+    assert converted['quote_request']['status'] == 'converted'
+    assert converted['quote']['reference'] == 'Q-PUBLIC-001'
+    assert converted['quote']['cadastre_context']['source'] == 'quote_request'
+
+
 def test_viewer_has_read_only_access(
     client: SyncASGIClient,
     seeded_data: dict[str, object],
@@ -193,6 +265,9 @@ def test_dashboard_returns_live_summary_and_recent_items(
     assert payload['notifications'][0]['sender'] == 'Manager User'
     assert payload['notifications'][0]['recipient_email'] == 'admin@cartotrac.com'
     assert payload['recent_quotes'][0]['reference'] == 'Q-002'
+    assert payload['tasks'][0]['assigned_user_name'] == 'Sales User'
+    assert payload['tasks'][0]['client_name'] == 'ACME'
+    assert payload['tasks'][0]['quote_reference'] == 'Q-001'
 
 
 def test_admin_can_crud_dashboard_events_with_assignment_and_meeting_link(
@@ -294,6 +369,11 @@ def test_admin_can_crud_dashboard_tasks(
     client: SyncASGIClient,
     seeded_data: dict[str, object],
 ) -> None:
+    users = seeded_data['users']
+    sales = users['sales']
+    seeded_client = seeded_data['client']
+    quote = seeded_data['quote']
+
     viewer_response = client.get(
         '/api/v1/dashboard/tasks',
         headers=auth_headers('viewer@cartotrac.com'),
@@ -310,10 +390,16 @@ def test_admin_can_crud_dashboard_tasks(
             'status': 'todo',
             'priority': 'medium',
             'progress': 15,
+            'assigned_user_id': sales.id,
+            'client_id': seeded_client.id,
+            'quote_id': quote.id,
         },
     )
     assert create_response.status_code == 201
     task_id = create_response.json()['id']
+    assert create_response.json()['assigned_user_name'] == 'Sales User'
+    assert create_response.json()['client_name'] == 'ACME'
+    assert create_response.json()['quote_reference'] == 'Q-001'
 
     update_response = client.patch(
         '/api/v1/dashboard/tasks/' + str(task_id),
@@ -321,11 +407,13 @@ def test_admin_can_crud_dashboard_tasks(
         json={
             'status': 'in_progress',
             'progress': 65,
+            'assigned_user_id': None,
         },
     )
     assert update_response.status_code == 200
     assert update_response.json()['status'] == 'in_progress'
     assert update_response.json()['progress'] == 65
+    assert update_response.json()['assigned_user_id'] is None
 
     list_response = client.get(
         '/api/v1/dashboard/tasks',
@@ -348,8 +436,8 @@ def test_authenticated_user_can_estimate_building_footprint_via_carto_proxy(
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
-    from src.domains.carto.schemas import BuildingFootprintEstimateResponse
-    from src.domains.carto.service import CartoService
+    from src.schemas.carto import BuildingFootprintEstimateResponse
+    from src.managers.carto import CartoManager
 
     def fake_search(_params):
         return BuildingFootprintEstimateResponse(
@@ -380,7 +468,7 @@ def test_authenticated_user_can_estimate_building_footprint_via_carto_proxy(
             },
         )
 
-    monkeypatch.setattr(CartoService, 'search_building_footprints', staticmethod(fake_search))
+    monkeypatch.setattr(CartoManager, 'search_building_footprints', staticmethod(fake_search))
 
     response = client.get(
         '/api/v1/carto/buildings/estimate',
@@ -400,8 +488,8 @@ def test_authenticated_user_can_search_cadastre_via_carto_proxy(
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
-    from src.domains.carto.schemas import CadastreSearchResponse
-    from src.domains.carto.service import CartoService
+    from src.schemas.carto import CadastreSearchResponse
+    from src.managers.carto import CartoManager
 
     def fake_search(_params):
         return CadastreSearchResponse(
@@ -435,7 +523,7 @@ def test_authenticated_user_can_search_cadastre_via_carto_proxy(
             },
         )
 
-    monkeypatch.setattr(CartoService, 'search_cadastre', staticmethod(fake_search))
+    monkeypatch.setattr(CartoManager, 'search_cadastre', staticmethod(fake_search))
 
     response = client.get(
         '/api/v1/carto/cadastre/search',
@@ -456,7 +544,7 @@ def test_authenticated_user_can_search_cadastre_via_carto_proxy(
 
 
 def test_building_polygon_helpers_ignore_extra_coordinate_dimensions() -> None:
-    from src.domains.carto.service import _compute_feature_area_square_meters, _find_best_building_index
+    from src.managers.carto import _compute_feature_area_square_meters, _find_best_building_index
 
     features = [
         {
@@ -490,8 +578,8 @@ def test_authenticated_user_can_reverse_geocode_address_via_carto_proxy(
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
-    from src.domains.carto.schemas import AddressReverseGeocodeResponse, AddressSuggestion
-    from src.domains.carto.service import CartoService
+    from src.schemas.carto import AddressReverseGeocodeResponse, AddressSuggestion
+    from src.managers.carto import CartoManager
 
     def fake_reverse(*, lon: float, lat: float):
         return AddressReverseGeocodeResponse(
@@ -509,7 +597,7 @@ def test_authenticated_user_can_reverse_geocode_address_via_carto_proxy(
             source_url='https://data.geopf.fr/geocodage/reverse?lon=' + str(lon) + '&lat=' + str(lat),
         )
 
-    monkeypatch.setattr(CartoService, 'reverse_geocode_address', staticmethod(fake_reverse))
+    monkeypatch.setattr(CartoManager, 'reverse_geocode_address', staticmethod(fake_reverse))
 
     response = client.get(
         '/api/v1/carto/address/reverse',
@@ -529,8 +617,8 @@ def test_authenticated_user_can_fetch_address_autocomplete_suggestions(
     seeded_data: dict[str, object],
     monkeypatch,
 ) -> None:
-    from src.domains.carto.schemas import AddressAutocompleteResponse, AddressSuggestion
-    from src.domains.carto.service import CartoService
+    from src.schemas.carto import AddressAutocompleteResponse, AddressSuggestion
+    from src.managers.carto import CartoManager
 
     def fake_autocomplete(_query: str, limit: int = 5):
         return AddressAutocompleteResponse(
@@ -551,7 +639,7 @@ def test_authenticated_user_can_fetch_address_autocomplete_suggestions(
             source_url='https://data.geopf.fr/geocodage/search?q=10+rue+de+rivoli&limit=' + str(limit),
         )
 
-    monkeypatch.setattr(CartoService, 'autocomplete_address', staticmethod(fake_autocomplete))
+    monkeypatch.setattr(CartoManager, 'autocomplete_address', staticmethod(fake_autocomplete))
 
     response = client.get(
         '/api/v1/carto/address/autocomplete',

@@ -2,16 +2,20 @@
 
 ## Vue d'ensemble
 
-Le backend est une API FastAPI organisee par domaines metier.
+Le backend est une API FastAPI organisee en couches.
 
 Le socle actuel couvre :
 - authentification JWT
+- refresh tokens persistants et rotatifs
+- roles applicatifs et permissions fines par domaine
 - verification de session via `/auth/me`
 - CRUD clients
 - CRUD devis
+- gestion des demandes de devis publiques
+- dashboard, taches, evenements, notifications et messages
 - endpoint de sante
 
-L'approche retenue reste volontairement simple : chaque domaine expose ses schemas, son service et son router, avec SQLAlchemy pour l'acces base et des dependances FastAPI pour la securite et la session DB.
+L'approche retenue reste volontairement simple : les routes HTTP restent dans la couche API, les managers portent la logique applicative, les schemas Pydantic decrivent les contrats d'entree/sortie, et la couche `db` regroupe les models SQLAlchemy ainsi que les repositories.
 
 ## Stack technique
 
@@ -46,28 +50,39 @@ Parametres majeurs :
 - secret JWT
 - duree de vie des tokens
 
-## Structure des domaines
+## Architecture En Couches
 
-Le backend suit une organisation par domaine dans `src/domains`.
+Le backend suit une organisation par couche dans `src`.
 
-Domaines actuellement exposes :
-- `health`
-- `auth`
-- `clients`
-- `quotes`
+Structure principale :
+- `api/routes` : endpoints FastAPI et traduction HTTP des erreurs applicatives
+- `api/dependencies` : dependances FastAPI d'authentification et d'autorisation
+- `managers` : logique applicative et orchestration metier
+- `schemas` : schemas Pydantic exposes par l'API
+- `db/models` : models SQLAlchemy relies aux tables
+- `db/repositories` : requetes SQLAlchemy et acces persistance
+- `renderers` : generation de contenus techniques, par exemple PDF
+- `core` : configuration, securite, permissions et cycle de vie
+- `common` : briques transverses partagees
 
 Reference : [`cartotrac-backend/src/api/router.py`](/home/spacefox_95/projects/Cartotrac-vitrine/cartotrac-backend/src/api/router.py)
 
 ## Routeur principal
 
-Le routeur principal agrege les routers de domaine et les expose sous `/api/v1`.
+Le routeur principal agrege les routers de `api/routes` et les expose sous `/api/v1`.
 
 Endpoints actuellement disponibles :
 - `/api/v1/health`
 - `/api/v1/auth/login`
+- `/api/v1/auth/refresh`
+- `/api/v1/auth/logout`
 - `/api/v1/auth/me`
+- `/api/v1/carto`
 - `/api/v1/clients`
+- `/api/v1/dashboard`
+- `/api/v1/quote-requests`
 - `/api/v1/quotes`
+- `/api/v1/users`
 
 ## Base de donnees
 
@@ -77,11 +92,18 @@ Pieces principales :
 - `core/database.py` pour la dependance DB FastAPI
 - `db/session.py` pour l'engine et la session factory
 - `db/base.py` pour la base declarative
+- `db/models/*` pour les mappings SQLAlchemy
+- `db/repositories/*` pour les acces aux donnees
 
 Modeles actuellement utiles au socle :
 - `users`
+- `refresh_token_sessions`
 - `clients`
+- `quote_requests`
 - `quotes`
+- `dashboard_tasks`
+- `dashboard_events`
+- `dashboard_notifications`
 
 ## Alembic
 
@@ -100,15 +122,19 @@ Note importante : la base de dev avait deja un etat anterieur hors historique co
 
 ### Principe
 
-Le backend utilise un JWT Bearer contenant `sub = email utilisateur`.
+Le backend utilise un access token JWT Bearer contenant `sub = email utilisateur`, complete par un refresh token opaque stocke en base sous forme hashee.
 
 Flux actuel :
 1. `POST /auth/login`
 2. verification de l'utilisateur dans la table `users`
 3. verification bcrypt du mot de passe
-4. emission d'un access token JWT
+4. emission d'un access token JWT et d'un refresh token opaque
 5. controle d'acces via `Authorization: Bearer <token>`
 6. resolution du profil courant via `/auth/me`
+7. renouvellement via `POST /auth/refresh`
+8. revocation de session via `POST /auth/logout`
+
+Les refresh tokens sont persistés dans `refresh_token_sessions`. Ils sont hashes, expirables, revocables et rotatifs : chaque refresh invalide l'ancien jeton et emet une nouvelle paire access/refresh.
 
 ### Composants auth
 
@@ -116,9 +142,9 @@ Flux actuel :
   fonctions JWT + bcrypt
 - `api/dependencies/auth.py`
   extraction et validation du Bearer token
-- `domains/auth/service.py`
+- `managers/auth.py`
   authentification applicative
-- `domains/users/repository.py`
+- `db/repositories/users.py`
   lecture utilisateur par email
 
 Reference : [`cartotrac-backend/src/api/dependencies/auth.py`](/home/spacefox_95/projects/Cartotrac-vitrine/cartotrac-backend/src/api/dependencies/auth.py)
@@ -129,6 +155,33 @@ Le login n'est plus un faux login :
 - l'email doit exister en base
 - le mot de passe doit correspondre au hash stocke
 - `/auth/me` recharge l'utilisateur depuis `users`
+- `/auth/refresh` refuse les refresh tokens inconnus, expires ou deja revoques
+
+## Roles et permissions
+
+Les roles applicatifs sont centralises dans `core/permissions.py`.
+
+Roles disponibles :
+- `admin`
+- `manager`
+- `sales`
+- `viewer`
+
+Les permissions sont rattachees aux domaines fonctionnels :
+- `users:manage`
+- `dashboard:read`
+- `dashboard:manage`
+- `messages:read`
+- `messages:write`
+- `carto:read`
+- `clients:read`
+- `clients:write`
+- `quotes:read`
+- `quotes:write`
+- `quote_requests:read`
+- `quote_requests:write`
+
+Les routers utilisent `require_permission(...)` pour declarer explicitement la permission attendue par endpoint. Par exemple, l'administration du contenu dashboard depend de `dashboard:manage` et non plus de `users:manage`.
 
 ## CORS
 
@@ -175,15 +228,16 @@ Comportements metier notables :
 - les references de devis doivent etre uniques
 - les collisions de reference sont traduites en erreur metier `400`
 
-## Schemas et services
+## Schemas, repositories et services
 
 Chaque domaine suit actuellement ce decoupage :
 - `models.py` pour l'ORM
 - `schemas.py` pour les contrats API
-- `service.py` pour la logique metier et DB immediate
+- `repository.py` pour l'acces base direct
+- `service.py` pour la logique metier et l'orchestration transactionnelle
 - `router.py` pour l'exposition HTTP
 
-Le niveau repository n'est pas encore uniformement utilise sur tous les domaines ; il est surtout pertinent aujourd'hui sur `users` pour l'auth.
+Les domaines `auth`, `users`, `clients`, `quotes`, `quote_requests` et `dashboard` disposent maintenant d'une couche repository. Les services restent responsables des validations metier, des commits/rollbacks et de la traduction en schemas de lecture.
 
 ## Reponses et erreurs
 
@@ -211,15 +265,11 @@ Ce seed sert surtout a rendre l'intranet exploitable immediatement en local.
 
 ## Limites connues
 
-- pas encore de gestion de roles / permissions fines
-- pas encore de refresh token
-- pas encore de couche repository/service homogeneiisee pour tous les domaines
 - pas encore de suite de tests backend representative
 - pas encore de gestion avancée des erreurs metier partagees
 
 ## Priorites naturelles apres ce socle
 
-- gestion des utilisateurs et administration
 - tests backend reels sur auth / clients / quotes
 - pagination et filtres plus riches
 - logs applicatifs et observabilite

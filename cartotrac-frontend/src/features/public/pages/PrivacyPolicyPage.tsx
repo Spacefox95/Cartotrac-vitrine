@@ -8,7 +8,7 @@ const PrivacyPolicyPage = () => {
       value: 'Jusqu’à 3 ans après le dernier contact émanant du prospect.',
     },
     {
-      title: 'Compte intranet et journal d’usage associé',
+      title: 'Espace connecté et journal d’usage associé',
       value: 'Pendant la durée d’utilisation du compte, puis suppression ou archivage limité selon les obligations applicables.',
     },
     {
@@ -16,7 +16,7 @@ const PrivacyPolicyPage = () => {
       value: 'Conservé localement dans le navigateur jusqu’à déconnexion, expiration technique ou suppression manuelle.',
     },
     {
-      title: 'Brouillon cadastral local',
+      title: 'Brouillon de demande local',
       value: 'Conservé uniquement dans la session du navigateur en cours puis effacé à la fermeture de l’onglet ou du navigateur selon l’environnement.',
     },
   ];
@@ -42,7 +42,7 @@ const PrivacyPolicyPage = () => {
           <Paper sx={{ p: 3, height: '100%' }}>
             <Stack spacing={1.25}>
               <Typography variant="h4">Finalités principales</Typography>
-              <Typography color="text.secondary">Répondre aux demandes entrantes, préparer un devis, gérer l’espace connecté et sécuriser l’accès aux services internes.</Typography>
+              <Typography color="text.secondary">Répondre aux demandes entrantes, préparer un devis, gérer l’espace connecté et sécuriser l’accès aux services associés.</Typography>
             </Stack>
           </Paper>
         </Grid>
@@ -64,7 +64,7 @@ const PrivacyPolicyPage = () => {
             professionnel, les données de compte de l’espace connecté et certaines données techniques nécessaires à la session.
           </Typography>
           <Typography color="text.secondary">
-            Dans le module cadastre, un brouillon peut aussi être conservé localement dans votre navigateur pour éviter la perte d’une saisie en cours. Ce
+            Un brouillon de demande peut aussi être conservé localement dans votre navigateur pour éviter la perte d’une saisie en cours. Ce
             stockage reste sur votre terminal tant que la session du navigateur reste ouverte.
           </Typography>
         </Stack>
@@ -76,12 +76,12 @@ const PrivacyPolicyPage = () => {
             <Stack spacing={1.5}>
               <Typography variant="h3">Bases légales</Typography>
               <Typography color="text.secondary">
-                Les demandes de contact, de démonstration ou de devis sont traitées pour répondre à votre sollicitation et prendre les mesures précontractuelles
+                Les demandes de contact ou de devis sont traitées pour répondre à votre sollicitation et prendre les mesures précontractuelles
                 que vous demandez.
               </Typography>
               <Typography color="text.secondary">
                 La gestion de l’espace connecté, de l’authentification et de la sécurité applicative repose sur l’exécution du service et sur l’intérêt légitime
-                de protection de la plateforme.
+                de protection du site et des accès associés.
               </Typography>
               <Typography color="text.secondary">
                 Si des messages de prospection électronique ou des cookies non essentiels sont ajoutés, un mécanisme de consentement distinct devra être activé.

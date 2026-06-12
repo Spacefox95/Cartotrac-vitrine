@@ -10,12 +10,13 @@ import {
 } from '@mui/material';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import { useAppDispatch } from 'app/store/hooks';
 import {
-  createClientRequest,
-  deleteClientRequest,
-  fetchClientRequest,
-  updateClientRequest,
-} from '../api/clientsApi';
+  createClient,
+  deleteClient,
+  fetchClient,
+  updateClient,
+} from 'app/store/thunks/clientsThunks';
 import ClientForm from '../components/ClientForm';
 import type { Client, ClientPayload } from '../types/client.types';
 
@@ -27,6 +28,7 @@ const emptyClient: ClientPayload = {
 };
 
 const ClientDetailsPage = () => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ clientId?: string }>();
@@ -52,7 +54,7 @@ const ClientDetailsPage = () => {
       try {
         setIsLoading(true);
         setErrorMessage(null);
-        const response = await fetchClientRequest(clientId);
+        const response = await dispatch(fetchClient(clientId));
 
         if (isMounted) {
           setClient(response);
@@ -73,7 +75,7 @@ const ClientDetailsPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [clientId, isCreate]);
+  }, [clientId, dispatch, isCreate]);
 
   const initialValues = useMemo<ClientPayload>(() => {
     if (!client) {
@@ -94,8 +96,8 @@ const ClientDetailsPage = () => {
       setErrorMessage(null);
 
       const response = isCreate
-        ? await createClientRequest(values)
-        : await updateClientRequest(clientId, values);
+        ? await dispatch(createClient(values))
+        : await dispatch(updateClient({ clientId, payload: values }));
 
       navigate(`/app/clients/${response.id}`);
     } catch {
@@ -121,7 +123,7 @@ const ClientDetailsPage = () => {
     try {
       setIsSubmitting(true);
       setErrorMessage(null);
-      await deleteClientRequest(client.id);
+      await dispatch(deleteClient(client.id));
       navigate('/app/clients');
     } catch {
       setErrorMessage(

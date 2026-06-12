@@ -11,17 +11,17 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch, useAppSelector } from 'app/store/hooks';
+import { deleteClient, fetchClients } from 'app/store/thunks/clientsThunks';
 
-import { deleteClientRequest } from '../api/clientsApi';
 import ClientTable from '../components/ClientTable';
-import { fetchClients } from '../store/clientsSlice';
 
 const ClientsListPage = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, total, isLoading, errorMessage } = useAppSelector(
+  const { items, total, status, errorMessage } = useAppSelector(
     (state) => state.clients,
   );
+  const isLoading = status === 'loading';
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -42,8 +42,8 @@ const ClientsListPage = () => {
     try {
       setIsDeleting(true);
       setActionError(null);
-      await deleteClientRequest(clientId);
-      await dispatch(fetchClients(search)).unwrap();
+      await dispatch(deleteClient(clientId));
+      await dispatch(fetchClients(search));
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       setActionError(

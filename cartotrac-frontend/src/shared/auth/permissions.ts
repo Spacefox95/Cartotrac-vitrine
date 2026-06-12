@@ -10,10 +10,45 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
-  admin: ['users:manage', 'clients:read', 'clients:write', 'quotes:read', 'quotes:write'],
-  manager: ['clients:read', 'clients:write', 'quotes:read', 'quotes:write'],
-  sales: ['clients:read', 'quotes:read', 'quotes:write'],
-  viewer: ['clients:read', 'quotes:read'],
+  admin: [
+    'users:manage',
+    'dashboard:read',
+    'dashboard:manage',
+    'messages:read',
+    'messages:write',
+    'carto:read',
+    'clients:read',
+    'clients:write',
+    'quotes:read',
+    'quotes:write',
+    'quote_requests:read',
+    'quote_requests:write',
+  ],
+  manager: [
+    'dashboard:read',
+    'dashboard:manage',
+    'messages:read',
+    'messages:write',
+    'carto:read',
+    'clients:read',
+    'clients:write',
+    'quotes:read',
+    'quotes:write',
+    'quote_requests:read',
+    'quote_requests:write',
+  ],
+  sales: [
+    'dashboard:read',
+    'messages:read',
+    'messages:write',
+    'carto:read',
+    'clients:read',
+    'quotes:read',
+    'quotes:write',
+    'quote_requests:read',
+    'quote_requests:write',
+  ],
+  viewer: ['dashboard:read', 'messages:read', 'messages:write', 'carto:read', 'clients:read', 'quotes:read'],
 };
 
 export function hasPermission(permissions: string[] | undefined, permission: string) {

@@ -16,31 +16,34 @@ const legalLinks = [
   { label: 'Connexion', to: '/login' },
 ];
 
-const Footer = () => {
+type FooterProps = {
+  compact?: boolean;
+};
+
+const Footer = ({ compact = false }: FooterProps) => {
   return (
     <Box
       component="footer"
       sx={{
-        mt: 6,
-        py: { xs: 4, md: 5 },
+        py: compact ? { xs: 2, md: 2.5 } : { xs: 4, md: 5 },
         borderTop: '1px solid rgba(85, 96, 111, 0.08)',
         background: 'rgba(253, 250, 245, 0.72)',
       }}
     >
       <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 3, md: 4 } }}>
-        <Grid container spacing={3}>
+        <Grid container spacing={compact ? 2 : 3}>
           <Grid size={{ xs: 12, md: 5 }}>
-            <Stack spacing={1.25}>
+            <Stack spacing={compact ? 0.75 : 1.25}>
               <Typography variant="h4" sx={{ color: 'primary.main' }}>
                 Cartotrac
               </Typography>
               <Typography color="text.secondary" sx={{ maxWidth: 420 }}>
-                Une vitrine claire et un socle métier utile pour relier lecture du terrain, qualification d’une adresse et préparation commerciale.
+                Prestations drone, SIG et photogrammétrie pour inspecter, mesurer, modéliser et documenter vos sites.
               </Typography>
             </Stack>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Stack spacing={0.5}>
+          <Grid size={{ md: 3 }}>
+            <Stack spacing={0.25}>
               <Typography variant="h5" color="primary.main">
                 Navigation
               </Typography>
@@ -50,15 +53,15 @@ const Footer = () => {
                   component={RouterLink}
                   to={item.to}
                   color="inherit"
-                  sx={{ justifyContent: 'flex-start', px: 1, color: 'text.secondary' }}
+                  sx={{ justifyContent: 'flex-start', px: 1, py: 0.25, minHeight: 32, color: 'text.secondary' }}
                 >
                   {item.label}
                 </Button>
               ))}
             </Stack>
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Stack spacing={0.5}>
+          <Grid size={{ md: 3 }}>
+            <Stack spacing={0.25}>
               <Typography variant="h5" color="primary.main">
                 Informations
               </Typography>
@@ -68,7 +71,7 @@ const Footer = () => {
                   component={RouterLink}
                   to={item.to}
                   color="inherit"
-                  sx={{ justifyContent: 'flex-start', px: 1, color: 'text.secondary' }}
+                  sx={{ justifyContent: 'flex-start', px: 1, py: 0.25, minHeight: 32, color: 'text.secondary' }}
                 >
                   {item.label}
                 </Button>
@@ -76,8 +79,8 @@ const Footer = () => {
             </Stack>
           </Grid>
         </Grid>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
-          © Cartotrac • Site vitrine et plateforme de repérage commercial et cartographique.
+        <Typography variant="body2" color="text.secondary" sx={{ mt: compact ? 1.5 : 2, textAlign: 'center' }}>
+          © Cartotrac • Drone, SIG, photogrammétrie et relevés terrain.
         </Typography>
       </Box>
     </Box>

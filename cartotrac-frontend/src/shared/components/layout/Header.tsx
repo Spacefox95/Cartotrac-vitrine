@@ -41,7 +41,7 @@ const Header = () => {
             Cartotrac
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Repérage cartographique et pilotage commercial.
+            Drone, SIG et photogrammétrie.
           </Typography>
         </Box>
 

@@ -1,4 +1,17 @@
-import { CheckCircleOutline, East, Explore, Map, RequestQuote, ViewInAr } from '@mui/icons-material';
+import {
+  Anchor,
+  CameraAlt,
+  CheckCircleOutline,
+  CleaningServices,
+  Code,
+  East,
+  FlightTakeoff,
+  Map,
+  Movie,
+  QueryStats,
+  Straighten,
+  Timeline,
+} from '@mui/icons-material';
 import { Button, Grid, Paper, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -6,93 +19,159 @@ import HeroSection from 'features/public/components/HeroSection';
 
 const services = [
   {
-    title: 'Repérage cadastral',
-    description: 'Identifier rapidement la bonne parcelle, vérifier ses références et conserver un contexte clair pour la suite.',
-    bullets: ['Recherche par adresse ou références cadastrales', 'Sélection de parcelle plus lisible', 'Contexte directement exploitable dans le devis'],
+    title: 'Entretien Toiture & Façade',
+    description: 'Solution d’entretien par drone pour vos toitures ou façades.',
+    bullets: ['Traitement en pulvérisation basse pression', 'Intervention rapide et sécurisée', 'Approche économique pour particuliers ou professionnels'],
+    icon: CleaningServices,
+  },
+  {
+    title: 'Cadastre & Urbanisme',
+    description: 'Plan de situation détaillé et lecture des données disponibles pour vos projets.',
+    bullets: ['Visuel sur les données disponibles', 'Accompagnement pour vos déclarations', 'Accès via le portail public'],
     icon: Map,
   },
   {
-    title: 'Mesure et préparation toiture',
-    description: 'Tracer une zone utile sur carte pour préparer le chiffrage ou l’échange technique sur une base commune.',
-    bullets: ['Dessin manuel précis', 'Ajustement des points du tracé', 'Export du contexte dans le flux devis'],
-    icon: Explore,
+    title: 'Relevés photogrammétriques',
+    description: 'Relevé aérien couplé au GNSS terrain pour produire des données géoréférencées.',
+    bullets: ['Package MNE, orthophotographie et nuage de points', 'Options d’atlas cartographiques', 'Rapports adaptés à vos sites'],
+    icon: FlightTakeoff,
   },
   {
-    title: 'Gestion commerciale reliée au terrain',
-    description: 'Clients, demandes et devis restent connectés à la réalité du site étudié.',
-    bullets: ['Création et suivi de clients', 'Devis structurés', 'Conservation du contexte cadastre dans le dossier'],
-    icon: RequestQuote,
+    title: 'Topographie & Implantation',
+    description: 'Implantations, relevés et suivis de chantier avec récepteurs GNSS RTK.',
+    bullets: ['Opérateurs équipés RTK', 'Suivi de chantier ou d’opérations', 'Relevés accessibles rapidement'],
+    icon: Straighten,
   },
   {
-    title: 'Plateforme prête à grandir',
-    description: 'Le socle est pensé pour accueillir des briques futures sans reconstruire toute l’interface.',
-    bullets: ['Missions et opérations', 'Drones ou captation', 'Prévisualisation et enrichissement 3D'],
-    icon: ViewInAr,
+    title: 'Cartographie, collecte & datavisualisation',
+    description: 'Accompagnement pour connaître, collecter et exploiter les données disponibles.',
+    bullets: ['Livrables thématiques', 'Valorisation des relevés', 'Datavisualisation pour rendre les données lisibles'],
+    icon: QueryStats,
+  },
+  {
+    title: 'Développement SIG',
+    description: 'Automatisations et outils métiers pour structurer vos usages cartographiques.',
+    bullets: ['Automatisations', 'PostGIS', 'Workflows QGIS et outils métiers'],
+    icon: Code,
+  },
+];
+
+const partnerServices = [
+  {
+    title: 'Relevés lidar aéroporté',
+    description: 'Modèles 3D, nuages de points non texturés et rapports.',
+    icon: Timeline,
+  },
+  {
+    title: 'Relevés sonar bathymétrique',
+    description: 'Modèles 3D, nuages de points non texturés et rapports.',
+    icon: Anchor,
+  },
+  {
+    title: "Film d'entreprise & Audiovisuel",
+    description: 'Clips, vidéomontages professionnels ou acquisitions drone selon vos besoins.',
+    icon: Movie,
+  },
+  {
+    title: 'Photographie aérienne',
+    description: 'Captation photo par drone avec un télépilote professionnel.',
+    icon: CameraAlt,
   },
 ];
 
 const process = [
-  'Analyse du besoin et de la façon de travailler actuelle',
-  'Cadrage des écrans prioritaires et des flux critiques',
-  'Mise en place d’un socle simple à utiliser par l’équipe',
-  'Ajout progressif des briques complémentaires les plus rentables',
+  'Qualification du besoin : portail public, portail pro, contact ou intervention partenaire',
+  'Choix de la méthode : drone, GNSS RTK, photogrammétrie, SIG, lidar, sonar ou audiovisuel',
+  'Acquisition, collecte ou automatisation selon le cas d’usage',
+  'Livraison des plans, données, rapports, médias ou workflows attendus',
 ];
 
 const ServicesPage = () => {
   return (
     <Stack spacing={4.5}>
       <HeroSection
-        eyebrow="Services"
-        title="Des outils pensés pour les activités qui doivent lire un lieu avant de vendre, planifier ou intervenir."
-        description="Cartotrac couvre le point de rencontre entre repérage cartographique, compréhension parcellaire et préparation commerciale. L’idée n’est pas de remplacer tous vos outils, mais d’organiser ce qui vous fait gagner du temps sur le terrain et dans le cycle devis."
+        eyebrow="Activités"
+        title="Nous intervenons en drone, cartographie, topographie et développement SIG."
+        description="Les activités Cartotrac couvrent l’entretien toiture et façade, le cadastre et l’urbanisme, les relevés photogrammétriques, la topographie, l’implantation, la collecte de données, la datavisualisation et les workflows SIG."
         primaryCta={{ label: 'Parler de votre besoin', to: '/contact' }}
         secondaryCta={{ label: 'Demander un devis', to: '/demande-devis' }}
-        highlights={['Repérage', 'Mesure', 'Devis', 'Évolutivité']}
+        highlights={['Portail public', 'Portail pro', 'Drone', 'SIG']}
         cards={[
           {
-            title: 'Pour les équipes terrain',
-            description: 'Une lecture plus nette d’une adresse, d’une parcelle et d’une zone à traiter avant déplacement.',
+            title: 'Nous intervenons',
+            description: 'Des prestations directes pour vos besoins courants de terrain, cartographie et SIG.',
           },
           {
-            title: 'Pour le commerce',
-            description: 'Un passage plus fluide de la qualification au chiffrage, sans rupture d’information.',
+            title: 'Partenaires',
+            description: 'Des expertises complémentaires pour le lidar, la bathymétrie, l’audiovisuel et la photo aérienne.',
           },
           {
-            title: 'Pour la structure',
-            description: 'Une base plus saine pour brancher ensuite d’autres modules réellement utiles.',
+            title: 'Livrables utiles',
+            description: 'Plans, rapports, orthophotos, nuages de points, médias et workflows exploitables.',
           },
         ]}
       />
 
-      <Grid container spacing={2.5}>
-        {services.map(({ title, description, bullets, icon: Icon }) => (
-          <Grid key={title} size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Stack spacing={1.5}>
-                <Icon sx={{ color: 'primary.main' }} />
-                <Typography variant="h3">{title}</Typography>
-                <Typography color="text.secondary">{description}</Typography>
-                <Stack spacing={1}>
-                  {bullets.map((item) => (
-                    <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
-                      <CheckCircleOutline sx={{ fontSize: 18, mt: '2px', color: 'primary.main' }} />
-                      <Typography color="text.secondary">{item}</Typography>
-                    </Stack>
-                  ))}
+      <Stack spacing={2.5}>
+        <Typography variant="h2">Nous intervenons</Typography>
+        <Grid container spacing={2.5}>
+          {services.map(({ title, description, bullets, icon: Icon }) => (
+            <Grid key={title} size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 3, height: '100%' }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Icon sx={{ color: 'primary.main', flexShrink: 0 }} />
+                    <Typography variant="h3">{title}</Typography>
+                  </Stack>
+                  <Typography color="text.secondary">{description}</Typography>
+                  <Stack spacing={1}>
+                    {bullets.map((item) => (
+                      <Stack key={item} direction="row" spacing={1} alignItems="flex-start">
+                        <CheckCircleOutline sx={{ fontSize: 18, mt: '2px', color: 'primary.main' }} />
+                        <Typography color="text.secondary">{item}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Paper>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Stack>
+
+      <Paper sx={{ p: { xs: 3, md: 4 } }}>
+        <Stack spacing={2.5}>
+          <Stack spacing={1.25}>
+            <Typography variant="h2">Partenaires</Typography>
+            <Typography color="text.secondary" sx={{ maxWidth: 780 }}>
+              Certaines demandes sont couvertes avec des partenaires professionnels pour compléter les capacités drone, SIG et cartographiques.
+            </Typography>
+          </Stack>
+          <Grid container spacing={2.5}>
+            {partnerServices.map(({ title, description, icon: Icon }) => (
+              <Grid key={title} size={{ xs: 12, sm: 6 }}>
+                <Paper sx={{ p: 2.5, height: '100%', boxShadow: 'none', bgcolor: 'rgba(255,255,255,0.72)' }}>
+                  <Stack spacing={1.25}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Icon sx={{ color: 'primary.main', flexShrink: 0 }} />
+                      <Typography variant="h4">{title}</Typography>
+                    </Stack>
+                    <Typography color="text.secondary">{description}</Typography>
+                  </Stack>
+                </Paper>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+        </Stack>
+      </Paper>
 
       <Paper sx={{ p: { xs: 3, md: 4 } }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 5 }}>
             <Stack spacing={1.25}>
-              <Typography variant="h2">Notre logique de déploiement</Typography>
+              <Typography variant="h2">Déroulement d'une demande</Typography>
               <Typography color="text.secondary">
-                On commence par les points de friction qui coûtent du temps au quotidien, puis on ajoute seulement les briques qui renforcent vraiment la chaîne de valeur.
+                L’objectif est d’orienter chaque besoin vers la bonne réponse : intervention directe, portail adapté, développement SIG ou partenaire spécialisé.
               </Typography>
             </Stack>
           </Grid>
@@ -113,12 +192,12 @@ const ServicesPage = () => {
 
       <Paper sx={{ p: { xs: 3, md: 4 }, textAlign: 'center' }}>
         <Stack spacing={2} alignItems="center">
-          <Typography variant="h2">Vous avez déjà un cas métier précis en tête ?</Typography>
+          <Typography variant="h2">Vous avez une activité ou un site à traiter ?</Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 760 }}>
-            On peut partir d’un usage simple, comme la préparation d’un devis toiture ou la qualification d’une adresse, puis étendre l’outil à partir de ce premier noyau utile.
+            Quelques informations suffisent pour commencer : localisation, objectif, données disponibles, livrables souhaités et délai.
           </Typography>
           <Button variant="contained" component={RouterLink} to="/contact" endIcon={<East />}>
-            Échanger sur votre cas d’usage
+            Échanger sur votre besoin
           </Button>
         </Stack>
       </Paper>

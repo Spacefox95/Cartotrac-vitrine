@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Link as RouterLink } from 'react-router-dom';
 
 import { useAppDispatch } from 'app/store/hooks';
-
-import { loginRequest } from '../api/auth.api';
-import { loginSuccess, logout } from '../store/authSlice';
+import { login, logout } from 'app/store/thunks/authThunks';
 
 const LoginForm = () => {
   const dispatch = useAppDispatch();
@@ -29,11 +27,10 @@ const LoginForm = () => {
       setIsSubmitting(true);
       setErrorMessage(null);
 
-      const response = await loginRequest({ email, password });
-      dispatch(loginSuccess(response.access_token));
+      await dispatch(login({ email, password }));
       navigate('/app/dashboard');
     } catch {
-      dispatch(logout());
+      void dispatch(logout());
       setErrorMessage('Connexion impossible. Vérifiez vos identifiants ou le backend.');
     } finally {
       setIsSubmitting(false);
